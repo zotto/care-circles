@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import type { CareRequest, CareCircle, Job } from '@/types';
+import { ref } from 'vue';
+import type { CareRequest, CareCircle, CareTask, JobStatusResponse } from '@/types';
+import { api } from '@/services/api';
+import type { ApiError } from '@/services/api';
 
 /**
  * Main store for Care Circles application
@@ -10,23 +12,32 @@ export const useCareStore = defineStore('care', () => {
   // State
   const currentCareCircle = ref<CareCircle | null>(null);
   const careRequests = ref<CareRequest[]>([]);
-  const activeJob = ref<Job | null>(null);
+  const activeJob = ref<any | null>(null); // Using any to allow extra properties
+  const currentJobId = ref<string | null>(null);
+  const tasks = ref<CareTask[]>([]);
   const isLoading = ref(false);
+  const isPolling = ref(false);
   const error = ref<string | null>(null);
 
   // Computed
-  const hasActiveRequest = computed(() => {
+  const hasActiveRequest = () => {
     return careRequests.value.some(
       (request) => request.status === 'processing' || request.status === 'submitted'
     );
-  });
+  };
 
-  const latestRequest = computed(() => {
+  const latestRequest = () => {
     if (careRequests.value.length === 0) return null;
     return careRequests.value.reduce((latest, current) => {
       return new Date(current.created_at) > new Date(latest.created_at) ? current : latest;
     });
-  });
+  };
+
+  const hasTasks = () => tasks.value.length > 0;
+
+  const isJobComplete = () => {
+    return activeJob.value?.status === 'completed';
+  };
 
   // Actions
   const createCareRequest = async (
@@ -38,29 +49,36 @@ export const useCareStore = defineStore('care', () => {
     error.value = null;
 
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // const response = await fetch('/api/care-requests', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ narrative, constraints, boundaries })
-      // });
-      // const data = await response.json();
-
-      // Mock implementation for now
-      const mockRequest: CareRequest = {
-        id: `req_${Date.now()}`,
-        care_circle_id: currentCareCircle.value?.id || 'default',
+      const response = await api.createCareRequest({
         narrative,
         constraints,
         boundaries,
-        status: 'submitted',
-        created_at: new Date().toISOString(),
+        care_circle_id: currentCareCircle.value?.id,
+      });
+
+      // Store the care request and job ID
+      careRequests.value.push(response.care_request);
+      currentJobId.value = response.job_id;
+
+      // Create a job object for tracking
+      activeJob.value = {
+        id: response.job_id,
+        care_request_id: response.care_request.id,
+        status: 'queued',
+        started_at: null,
+        completed_at: null,
+        error: null,
+        current_agent: null,
+        agent_progress: {},
       };
 
-      careRequests.value.push(mockRequest);
-      return mockRequest;
+      // Start polling for job status
+      startPolling(response.job_id);
+
+      return response.care_request;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to create care request';
+      const apiError = err as ApiError;
+      error.value = apiError.message || 'Failed to create care request';
       throw err;
     } finally {
       isLoading.value = false;
@@ -72,37 +90,114 @@ export const useCareStore = defineStore('care', () => {
     error.value = null;
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/care-requests/${id}`);
-      // const data = await response.json();
-
-      const request = careRequests.value.find((r) => r.id === id);
-      return request || null;
+      const request = await api.getCareRequest(id);
+      return request;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch care request';
+      const apiError = err as ApiError;
+      error.value = apiError.message || 'Failed to fetch care request';
       return null;
     } finally {
       isLoading.value = false;
     }
   };
 
-  const pollJobStatus = async (jobId: string): Promise<Job> => {
-    // TODO: Replace with actual API call
-    // const response = await fetch(`/api/jobs/${jobId}`);
-    // const data = await response.json();
+  const fetchJobStatus = async (jobId: string): Promise<JobStatusResponse | null> => {
+    try {
+      const response = await api.pollJobStatus(jobId, (status) => {
+        console.log('📊 Job status update:', {
+          status: status.status,
+          agent: status.current_agent,
+          progress: status.agent_progress,
+          hasTasks: !!status.tasks,
+          taskCount: status.tasks?.length || 0
+        });
+        
+        // Update active job with progress
+        activeJob.value = {
+          id: status.job_id,
+          care_request_id: status.care_request_id,
+          status: status.status,
+          started_at: status.started_at,
+          completed_at: status.completed_at,
+          error: status.error,
+          current_agent: status.current_agent,
+          agent_progress: status.agent_progress,
+        };
 
-    // Mock implementation
-    const mockJob: Job = {
-      id: jobId,
-      care_request_id: latestRequest.value?.id || '',
-      status: 'queued',
-      started_at: new Date().toISOString(),
-      completed_at: null,
-      error: null,
-    };
+        // Update tasks if completed
+        if (status.status === 'completed' && status.tasks && status.tasks.length > 0) {
+          console.log('✅ Job completed with tasks:', status.tasks.length);
+          tasks.value = status.tasks;
+          stopPolling();
+        }
 
-    activeJob.value = mockJob;
-    return mockJob;
+        // Handle failed status
+        if (status.status === 'failed') {
+          console.error('❌ Job failed:', status.error);
+          error.value = status.error || 'Job failed';
+          stopPolling();
+        }
+      });
+
+      return response;
+    } catch (err) {
+      const apiError = err as ApiError;
+      console.error('❌ Polling error:', apiError);
+      error.value = apiError.message || 'Failed to fetch job status';
+      stopPolling();
+      return null;
+    }
+  };
+
+  const startPolling = (jobId: string) => {
+    // Set polling flag
+    isPolling.value = true;
+
+    // Start the long-polling process
+    fetchJobStatus(jobId);
+  };
+
+  const stopPolling = () => {
+    isPolling.value = false;
+  };
+
+  const refreshJobStatus = async () => {
+    if (currentJobId.value) {
+      try {
+        const status = await api.getJobStatus(currentJobId.value);
+        
+        // Update active job
+        activeJob.value = {
+          id: status.job_id,
+          care_request_id: status.care_request_id,
+          status: status.status,
+          started_at: status.started_at,
+          completed_at: status.completed_at,
+          error: status.error,
+          current_agent: status.current_agent,
+          agent_progress: status.agent_progress,
+        };
+
+        // Update tasks if completed
+        if (status.status === 'completed' && status.tasks) {
+          tasks.value = status.tasks;
+        }
+      } catch (err) {
+        const apiError = err as ApiError;
+        error.value = apiError.message || 'Failed to refresh job status';
+      }
+    }
+  };
+
+  const updateTask = (taskId: string, updates: Partial<CareTask>) => {
+    const taskIndex = tasks.value.findIndex((t) => t.id === taskId);
+    if (taskIndex !== -1) {
+      tasks.value[taskIndex] = { ...tasks.value[taskIndex], ...updates } as CareTask;
+    }
+  };
+
+  const deleteTask = (taskId: string) => {
+    tasks.value = tasks.value.filter((t) => t.id !== taskId);
   };
 
   const clearError = () => {
@@ -110,10 +205,14 @@ export const useCareStore = defineStore('care', () => {
   };
 
   const reset = () => {
+    stopPolling();
     currentCareCircle.value = null;
     careRequests.value = [];
     activeJob.value = null;
+    currentJobId.value = null;
+    tasks.value = [];
     isLoading.value = false;
+    isPolling.value = false;
     error.value = null;
   };
 
@@ -122,17 +221,27 @@ export const useCareStore = defineStore('care', () => {
     currentCareCircle,
     careRequests,
     activeJob,
+    currentJobId,
+    tasks,
     isLoading,
+    isPolling,
     error,
 
     // Computed
     hasActiveRequest,
     latestRequest,
+    hasTasks,
+    isJobComplete,
 
     // Actions
     createCareRequest,
     getCareRequest,
-    pollJobStatus,
+    fetchJobStatus,
+    startPolling,
+    stopPolling,
+    refreshJobStatus,
+    updateTask,
+    deleteTask,
     clearError,
     reset,
   };

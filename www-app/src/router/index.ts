@@ -1,33 +1,27 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import PlanView from '@/views/PlanView.vue';
+import UnifiedWorkflowView from '@/views/UnifiedWorkflowView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
-      name: 'plan',
-      component: PlanView,
+      name: 'workflow',
+      component: UnifiedWorkflowView,
       meta: {
-        title: 'Create Care Plan - Care Circles',
+        title: 'Care Coordination - Care Circles',
       },
     },
-    // Future routes can be added here:
+    // Keep old routes for reference/future use
     // {
-    //   path: '/review/:id',
-    //   name: 'review',
-    //   component: () => import('@/views/ReviewView.vue'),
-    //   meta: {
-    //     title: 'Review Care Plan - Care Circles',
-    //   },
+    //   path: '/plan',
+    //   name: 'plan',
+    //   component: () => import('@/views/PlanView.vue'),
     // },
     // {
-    //   path: '/tasks/:circleId',
+    //   path: '/tasks',
     //   name: 'tasks',
     //   component: () => import('@/views/TasksView.vue'),
-    //   meta: {
-    //     title: 'Care Tasks - Care Circles',
-    //   },
     // },
   ],
   scrollBehavior(_to, _from, savedPosition) {

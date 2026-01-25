@@ -1,0 +1,308 @@
+# CrewAI Task Configurations for Care Circles
+#
+# This file defines the 5 tasks that correspond to each agent in the pipeline.
+# Each task has a description, expected output format, and is assigned to a specific agent.
+
+analyze_needs:
+  description: |
+    Analyze the provided care request narrative, constraints, and boundaries to produce a structured needs map.
+    
+    Your analysis should:
+    1. Read the narrative carefully and identify both explicit and implicit needs
+    2. Consider the stated constraints (timing, availability, resources)
+    3. Respect the stated boundaries (privacy, preferences, limitations)
+    4. Identify potential risks or red flags that need attention
+    5. Document any assumptions you're making based on the narrative
+    6. Organize needs into logical categories (daily living, medical, emotional, household, etc.)
+    
+    Input format:
+    - narrative: The caregiving situation description
+    - constraints: Optional timing and scheduling information
+    - boundaries: Optional privacy and boundary preferences
+    
+    Be thorough but stay grounded in what's actually stated or reasonably implied.
+    Don't invent needs that aren't supported by the narrative.
+    
+    CRITICAL: You MUST output ONLY valid JSON. Do not use markdown formatting, code blocks, or any explanatory text.
+    Your response must be a valid JSON object that can be parsed directly by json.loads().
+  
+  expected_output: |
+    You MUST output ONLY a valid JSON object. No markdown, no code blocks, no explanatory text - just pure JSON.
+    
+    The JSON object must have this exact structure:
+    {
+      "summary": "A 2-3 sentence high-level summary of the situation",
+      "identified_needs": {
+        "category_name": ["need1", "need2", ...]
+      },
+      "risks": {
+        "risk_name": "description of the risk"
+      },
+      "assumptions": "A clear statement of any assumptions made during analysis"
+    }
+    
+    Example:
+    {
+      "summary": "Primary caregiver recovering from surgery, needs meal and appointment support for 3-4 weeks",
+      "identified_needs": {
+        "meals": ["Dinner preparation for 2 people, 7 days/week", "Grocery shopping weekly"],
+        "transportation": ["Medical follow-up appointments (3 scheduled)", "Pharmacy runs"],
+        "household": ["Light cleaning", "Laundry assistance"]
+      },
+      "risks": {
+        "isolation": "Request mentions being alone - may need companionship check-ins",
+        "recovery_monitoring": "Post-surgical - ensure medical professional oversight"
+      },
+      "assumptions": "Assuming 3-4 week timeframe based on typical recovery, dietary restrictions not specified"
+    }
+    
+    Remember: Output ONLY the JSON object, nothing else. No markdown formatting, no ```json``` blocks, no explanations.
+
+generate_tasks:
+  description: |
+    Transform the NeedsMap into specific, actionable care tasks that volunteers can understand and sign up for.
+    
+    Each task should:
+    1. Have a clear, descriptive title (what needs to be done)
+    2. Include detailed description with context (why it matters, what to expect)
+    3. Be categorized appropriately (meals, transportation, companionship, household, medical_coordination, etc.)
+    4. Have an appropriate priority level (high, medium, low) based on urgency and impact
+    5. Be scoped appropriately - not too broad, not too granular
+    6. Include any relevant information from constraints or boundaries
+    
+    Make tasks feel human and approachable. Use language that conveys the meaningful impact of helping.
+    Avoid cold or clinical phrasing. Make it clear how the task helps the person in need.
+    
+    Input: NeedsMap object from A1
+    
+    CRITICAL: You MUST output ONLY valid JSON. Do not use markdown formatting, code blocks, or any explanatory text.
+    Your response must be a valid JSON array that can be parsed directly by json.loads().
+  
+  expected_output: |
+    You MUST output ONLY a valid JSON array. No markdown, no code blocks, no explanatory text - just pure JSON.
+    
+    The JSON array must contain objects with this exact structure:
+    [
+      {
+        "title": "Clear, action-oriented title (e.g., 'Prepare weeknight dinners')",
+        "description": "Detailed description with context and any special considerations",
+        "category": "Appropriate category label (meals, transportation, companionship, household, medical_coordination, etc.)",
+        "priority": "high, medium, or low",
+        "status": "draft"
+      },
+      ...
+    ]
+    
+    Example:
+    [
+      {
+        "title": "Prepare weeknight dinners",
+        "description": "Prepare nutritious dinners for 2 people, Monday through Friday, for the next 3-4 weeks. Consider dietary preferences and ensure meals are easy to reheat.",
+        "category": "meals",
+        "priority": "high",
+        "status": "draft"
+      },
+      {
+        "title": "Transport to medical appointments",
+        "description": "Provide transportation to 3 scheduled follow-up appointments. Ensure timely arrival and assist with mobility if needed.",
+        "category": "transportation",
+        "priority": "high",
+        "status": "draft"
+      }
+    ]
+    
+    Generate between 5-15 tasks depending on the complexity of the needs.
+    Tasks should cover all identified needs without excessive duplication.
+    
+    Remember: Output ONLY the JSON array, nothing else. No markdown formatting, no ```json``` blocks, no explanations.
+
+review_quality:
+  description: |
+    Review the generated tasks for safety, appropriateness, respect, and boundary compliance.
+    
+    Your review should check for:
+    1. Safety concerns - tasks requiring professional credentials that volunteers shouldn't do
+    2. Boundary violations - tasks that exceed what was requested or implied
+    3. Inappropriate assumptions - tasks based on stereotypes or unsupported inferences
+    4. Sensitive language - phrasing that might feel patronizing or invasive
+    5. Scope creep - tasks that go beyond helping into managing the person's life
+    6. Missing safeguards - tasks that need supervision or professional oversight
+    
+    For each issue found:
+    - Flag the task
+    - Explain the concern
+    - Provide a revised version or recommend removal
+    - Add notes about what safeguards or modifications are needed
+    
+    Remember: The goal is to make the plan safer and more respectful, not to eliminate all tasks.
+    Many tasks will pass review unchanged. Focus on genuine concerns.
+    
+    Input: List of draft CareTask objects from A2
+    
+    CRITICAL: You MUST output ONLY valid JSON. Do not use markdown formatting, code blocks, or any explanatory text.
+    Your response must be a valid JSON object that can be parsed directly by json.loads().
+  
+  expected_output: |
+    You MUST output ONLY a valid JSON object. No markdown, no code blocks, no explanatory text - just pure JSON.
+    
+    The JSON object must have this exact structure:
+    {
+      "tasks": [
+        {
+          "title": "Task title",
+          "description": "Task description (revised if needed)",
+          "category": "category_name",
+          "priority": "high, medium, or low",
+          "status": "draft"
+        },
+        ...
+      ],
+      "review_notes": "Explanation of changes made, concerns, and recommendations"
+    }
+    
+    Example:
+    {
+      "tasks": [
+        {
+          "title": "Prepare weeknight dinners",
+          "description": "Prepare nutritious dinners for 2 people, Monday through Friday. Note: Ensure meals comply with any dietary restrictions.",
+          "category": "meals",
+          "priority": "high",
+          "status": "draft"
+        }
+      ],
+      "review_notes": "All tasks reviewed. Modified meal task to include dietary restriction reminder. All other tasks approved as safe and appropriate."
+    }
+    
+    Include ALL tasks in the tasks array, even if unchanged. If a task was removed, do not include it.
+    The review_notes should explain what changes were made and why, any concerns, and recommendations.
+    
+    Remember: Output ONLY the JSON object, nothing else. No markdown formatting, no ```json``` blocks, no explanations.
+
+optimize_plan:
+  description: |
+    Optimize the care plan for clarity, completeness, and execution efficiency.
+    
+    Your optimization should:
+    1. Remove duplicate or redundant tasks
+    2. Combine tasks that naturally go together
+    3. Improve task descriptions for maximum clarity
+    4. Verify all identified needs from A1 are actually addressed
+    5. Check for gaps in coverage (needs identified but no tasks created)
+    6. Ensure logical task organization and sequencing
+    7. Balance priority distribution (not everything can be high priority)
+    8. Verify task titles and descriptions are clear and actionable
+    
+    Make refinements that improve the plan without changing its fundamental intent.
+    If you find gaps, add tasks to fill them. If you find redundancy, consolidate.
+    
+    Input: Reviewed CareTask list from A3
+    
+    CRITICAL: You MUST output ONLY valid JSON. Do not use markdown formatting, code blocks, or any explanatory text.
+    Your response must be a valid JSON object that can be parsed directly by json.loads().
+  
+  expected_output: |
+    You MUST output ONLY a valid JSON object. No markdown, no code blocks, no explanatory text - just pure JSON.
+    
+    The JSON object must have this exact structure:
+    {
+      "tasks": [
+        {
+          "title": "Task title",
+          "description": "Task description",
+          "category": "category_name",
+          "priority": "high, medium, or low",
+          "status": "draft"
+        },
+        ...
+      ],
+      "optimization_notes": "Explanation of optimizations made"
+    }
+    
+    Example:
+    {
+      "tasks": [
+        {
+          "title": "Prepare weeknight dinners",
+          "description": "Prepare nutritious dinners for 2 people, Monday through Friday, for the next 3-4 weeks.",
+          "category": "meals",
+          "priority": "high",
+          "status": "draft"
+        },
+        {
+          "title": "Transport to medical appointments",
+          "description": "Provide transportation to 3 scheduled follow-up appointments.",
+          "category": "transportation",
+          "priority": "high",
+          "status": "draft"
+        }
+      ],
+      "optimization_notes": "Combined two similar meal tasks into one. Removed duplicate transportation task. Added grocery shopping task to fill gap. Total: 8 optimized tasks covering all identified needs."
+    }
+    
+    The tasks array should contain the optimized, final list of tasks.
+    The optimization_notes should explain what optimizations were made, how the list addresses original needs, and any trade-offs.
+    
+    Remember: Output ONLY the JSON object, nothing else. No markdown formatting, no ```json``` blocks, no explanations.
+
+assemble_review:
+  description: |
+    Create a comprehensive ReviewPacket that presents the care plan to the organizer for approval.
+    
+    The review packet should:
+    1. Provide an executive summary of the situation and proposed plan
+    2. Present the finalized task list in an organized, scannable format
+    3. Include agent notes explaining the reasoning and any key decisions
+    4. Highlight any items that need special attention or human judgment
+    5. Note any assumptions made during the process
+    6. Provide context that helps the organizer make an informed approval decision
+    
+    Your presentation should be clear, professional, and empowering. The organizer should feel
+    confident understanding what's proposed and why, with enough information to approve, modify,
+    or reject specific tasks.
+    
+    Input: Optimized CareTask list from A4, plus context from all previous stages
+    
+    CRITICAL: You MUST output ONLY valid JSON. Do not use markdown formatting, code blocks, or any explanatory text.
+    Your response must be a valid JSON object that can be parsed directly by json.loads().
+  
+  expected_output: |
+    You MUST output ONLY a valid JSON object. No markdown, no code blocks, no explanatory text - just pure JSON.
+    
+    The JSON object must have this exact structure:
+    {
+      "summary": "2-3 paragraph executive summary of the situation and plan",
+      "draft_tasks": [
+        {
+          "title": "Task title",
+          "description": "Task description",
+          "category": "category_name",
+          "priority": "high, medium, or low",
+          "status": "draft"
+        },
+        ...
+      ],
+      "agent_notes": "Comprehensive notes covering: analysis approach, key needs identified, how tasks address needs, concerns, assumptions, recommendations",
+      "approval_status": "pending"
+    }
+    
+    Example:
+    {
+      "summary": "This care plan addresses the needs of a primary caregiver recovering from surgery. The plan includes 8 tasks covering meals, transportation, and household support over a 3-4 week period. All tasks have been reviewed for safety and appropriateness.",
+      "draft_tasks": [
+        {
+          "title": "Prepare weeknight dinners",
+          "description": "Prepare nutritious dinners for 2 people, Monday through Friday, for the next 3-4 weeks.",
+          "category": "meals",
+          "priority": "high",
+          "status": "draft"
+        }
+      ],
+      "agent_notes": "Analysis identified primary needs in meals, transportation, and household support. All tasks reviewed for safety. No medical tasks assigned to volunteers. Recommendations: Ensure dietary restrictions are communicated, coordinate appointment times in advance.",
+      "approval_status": "pending"
+    }
+    
+    The summary should be 2-3 paragraphs. The draft_tasks array should contain all finalized tasks.
+    The agent_notes should comprehensively cover the analysis approach, key needs, how tasks address needs, concerns, assumptions, and recommendations.
+    
+    Remember: Output ONLY the JSON object, nothing else. No markdown formatting, no ```json``` blocks, no explanations.

@@ -69,6 +69,34 @@ export interface Job {
 }
 
 /**
+ * API Request/Response types
+ */
+
+export interface CareRequestCreatePayload {
+  narrative: string;
+  constraints?: string;
+  boundaries?: string;
+  care_circle_id?: string;
+}
+
+export interface CareRequestResponse {
+  care_request: CareRequest;
+  job_id: string;
+}
+
+export interface JobStatusResponse {
+  status: string;
+  job_id: string;
+  care_request_id: string;
+  current_agent: string | null;
+  agent_progress: Record<string, string>;
+  tasks: CareTask[] | null;
+  error: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+/**
  * UI-specific types
  */
 

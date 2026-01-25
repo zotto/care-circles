@@ -8,7 +8,7 @@
 import { computed } from 'vue';
 
 interface Props {
-  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'neutral';
+  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'danger' | 'info' | 'neutral';
   size?: 'sm' | 'md' | 'lg';
   outlined?: boolean;
 }
@@ -59,6 +59,11 @@ const badgeClasses = computed(() => [
 }
 
 /* Variants - Filled */
+.badge--default {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+}
+
 .badge--primary {
   background-color: var(--color-primary);
   color: var(--color-text-inverse);
@@ -84,6 +89,11 @@ const badgeClasses = computed(() => [
   color: var(--color-text-inverse);
 }
 
+.badge--danger {
+  background-color: var(--color-danger);
+  color: var(--color-text-inverse);
+}
+
 .badge--info {
   background-color: var(--color-info);
   color: var(--color-text-inverse);
@@ -95,6 +105,12 @@ const badgeClasses = computed(() => [
 }
 
 /* Outlined Variants */
+.badge--outlined.badge--default {
+  background-color: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
 .badge--outlined.badge--primary {
   background-color: var(--color-primary-subtle);
   color: var(--color-primary);
@@ -123,6 +139,12 @@ const badgeClasses = computed(() => [
   background-color: var(--color-error-light);
   color: var(--color-error);
   border: 1px solid var(--color-error);
+}
+
+.badge--outlined.badge--danger {
+  background-color: var(--color-danger-light);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
 }
 
 .badge--outlined.badge--info {

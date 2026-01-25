@@ -72,12 +72,12 @@
 
                 <h2 class="plan-view__success-title">We're on it!</h2>
                 <p class="plan-view__success-message">
-                  We're creating your care plan now. You'll be able to review and customize everything before sharing with your helpers.
+                  We're creating your care plan now. Taking you to the review page...
                 </p>
 
                 <!-- Progress Steps -->
                 <div class="plan-view__success-next">
-                  <strong>What's next?</strong>
+                  <strong>What's happening?</strong>
                   <div class="progress-steps">
                     <div 
                       v-for="(step, index) in nextSteps" 
@@ -90,16 +90,6 @@
                     </div>
                   </div>
                 </div>
-
-                <BaseButton 
-                  variant="primary" 
-                  size="lg" 
-                  @click="handleCreateAnother"
-                  class="success-button"
-                >
-                  <BaseIcon :path="mdiPlus" :size="20" style="margin-right: 8px;" />
-                  Create Another Request
-                </BaseButton>
               </div>
             </BaseCard>
           </section>
@@ -112,18 +102,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import CareRequestForm from '@/components/organisms/CareRequestForm.vue';
 import BaseCard from '@/components/atoms/BaseCard.vue';
-import BaseButton from '@/components/atoms/BaseButton.vue';
-import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import { useCareStore } from '@/stores/careStore';
 import { useScrollReveal } from '@/composables/useAnimations';
 import { ANIMATION } from '@/constants';
 import type { CareRequest } from '@/types';
 
-// Material Design Icons
-import { mdiPlus } from '@mdi/js';
-
+const router = useRouter();
 const careStore = useCareStore();
 const showSuccess = ref(false);
 
@@ -149,9 +136,9 @@ onMounted(() => {
 
 // Next steps data
 const nextSteps = [
-  'We analyze your needs and create a care plan',
-  'You review and customize the tasks',
-  'Your helpers receive the tasks they can support with'
+  'Analyzing your needs with AI',
+  'Generating personalized tasks',
+  'Preparing your care plan'
 ];
 
 const handleSubmit = async (data: Omit<CareRequest, 'id' | 'care_circle_id' | 'status' | 'created_at'>) => {
@@ -164,19 +151,15 @@ const handleSubmit = async (data: Omit<CareRequest, 'id' | 'care_circle_id' | 's
     
     showSuccess.value = true;
     
+    // Navigate to tasks view after a brief delay
     setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, ANIMATION.SUCCESS_DELAY);
+      router.push('/tasks');
+    }, 2000);
   } catch (error) {
     console.error('Failed to submit care request:', error);
+    // Show error notification or inline message
+    alert('Failed to submit care request. Please try again.');
   }
-};
-
-const handleCreateAnother = () => {
-  showSuccess.value = false;
-  setTimeout(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, ANIMATION.SUCCESS_DELAY);
 };
 
 const onSuccessEnter = (el: Element) => {

@@ -27,10 +27,10 @@ const currentYear = computed(() => new Date().getFullYear());
 
 <style scoped>
 .app-footer {
-  background-color: var(--color-bg-primary);
-  border-top: 1px solid var(--color-border);
+  background-color: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border-light);
   margin-top: auto;
-  padding: var(--spacing-xl) 0;
+  padding: var(--spacing-2xl) 0;
 }
 
 .app-footer__content {
@@ -47,7 +47,7 @@ const currentYear = computed(() => new Date().getFullYear());
 
 .app-footer__text {
   font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  color: var(--color-text-tertiary);
   margin: 0;
 }
 
@@ -74,6 +74,10 @@ const currentYear = computed(() => new Date().getFullYear());
 }
 
 @media (max-width: 640px) {
+  .app-footer {
+    padding: var(--spacing-xl) 0;
+  }
+
   .app-footer__content {
     flex-direction: column;
     text-align: center;

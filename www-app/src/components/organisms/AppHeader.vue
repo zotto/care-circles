@@ -35,37 +35,21 @@ withDefaults(defineProps<Props>(), {
 
 <style scoped>
 .app-header {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid var(--color-border-light);
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   transition: all var(--transition-base);
-}
-
-.app-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--color-primary-light), transparent);
-  opacity: 0;
-  transition: opacity var(--transition-base);
-}
-
-.app-header:hover::after {
-  opacity: 0.5;
 }
 
 .app-header__content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-md) 0;
+  padding: var(--spacing-lg) 0;
 }
 
 .app-header__brand {
@@ -73,11 +57,11 @@ withDefaults(defineProps<Props>(), {
   align-items: center;
   gap: var(--spacing-md);
   cursor: pointer;
-  transition: transform var(--transition-base);
+  transition: opacity var(--transition-base);
 }
 
 .app-header__brand:hover {
-  transform: translateY(-2px);
+  opacity: 0.8;
 }
 
 .app-header__logo {
@@ -85,36 +69,19 @@ withDefaults(defineProps<Props>(), {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   background: linear-gradient(135deg, var(--color-primary-subtle) 0%, #fdf2f8 100%);
   border-radius: var(--radius-md);
   transition: all var(--transition-base);
-  position: relative;
-  overflow: hidden;
-}
-
-.app-header__logo::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  opacity: 0;
-  transition: opacity var(--transition-base);
-}
-
-.app-header__brand:hover .app-header__logo::before {
-  opacity: 0.1;
 }
 
 .app-header__logo svg {
-  position: relative;
-  z-index: 1;
   transition: transform var(--transition-base);
 }
 
-.app-header__brand:hover .app-header__logo svg {
-  transform: scale(1.1);
+.app-header__brand:hover .app-header__logo {
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, #fce7f3 100%);
 }
 
 .app-header__title {
@@ -124,19 +91,15 @@ withDefaults(defineProps<Props>(), {
 }
 
 .app-header__name {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   margin: 0;
   line-height: 1;
-  background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-primary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .app-header__tagline {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   margin: 0;
   line-height: 1;
@@ -150,22 +113,26 @@ withDefaults(defineProps<Props>(), {
 }
 
 @media (max-width: 640px) {
+  .app-header__content {
+    padding: var(--spacing-md) 0;
+  }
+
   .app-header__tagline {
     display: none;
   }
   
   .app-header__name {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-base);
   }
   
   .app-header__logo {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
   
   .app-header__logo svg {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
   }
 }
 </style>

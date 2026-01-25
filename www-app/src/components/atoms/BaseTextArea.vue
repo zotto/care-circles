@@ -150,7 +150,7 @@ watch(
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
   border: 2px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   resize: vertical;
   transition: all var(--transition-base);
 }
@@ -161,12 +161,14 @@ watch(
 
 .text-area__input:hover:not(:disabled):not(:readonly) {
   border-color: var(--color-primary-light);
+  background-color: var(--color-bg-primary);
 }
 
 .text-area__input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+  box-shadow: 0 0 0 4px var(--color-primary-subtle);
+  background-color: var(--color-bg-primary);
 }
 
 .text-area__input--error {

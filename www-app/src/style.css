@@ -1,11 +1,11 @@
 /* Design Tokens */
 :root {
-  /* Color Palette - Warm, caring, and supportive */
-  --color-primary: #6366f1; /* Indigo - trustworthy */
-  --color-primary-dark: #4f46e5;
-  --color-primary-light: #818cf8;
+  /* Color Palette - Clean, professional, trustworthy */
+  --color-primary: #4f46e5; /* Indigo - trustworthy */
+  --color-primary-dark: #4338ca;
+  --color-primary-light: #6366f1;
   --color-primary-subtle: #eef2ff;
-  --color-primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --color-primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   
   --color-secondary: #ec4899; /* Pink - caring */
   --color-secondary-dark: #db2777;
@@ -17,17 +17,17 @@
   --color-accent-light: #2dd4bf;
   
   /* Neutral Colors */
-  --color-text-primary: #1f2937;
-  --color-text-secondary: #6b7280;
-  --color-text-tertiary: #9ca3af;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-text-tertiary: #94a3b8;
   --color-text-inverse: #ffffff;
   
   --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f9fafb;
-  --color-bg-tertiary: #f3f4f6;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
   
-  --color-border: #e5e7eb;
-  --color-border-light: #f3f4f6;
+  --color-border: #e2e8f0;
+  --color-border-light: #f1f5f9;
   
   /* Semantic Colors */
   --color-success: #10b981;
@@ -79,12 +79,12 @@
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --shadow-colored: 0 10px 40px -10px rgba(99, 102, 241, 0.3);
-  --shadow-colored-lg: 0 20px 60px -15px rgba(99, 102, 241, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  --shadow-colored: 0 10px 40px -10px rgba(79, 70, 229, 0.25);
+  --shadow-colored-lg: 0 20px 60px -15px rgba(79, 70, 229, 0.3);
   
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);

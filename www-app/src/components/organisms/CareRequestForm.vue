@@ -3,25 +3,22 @@
     <form @submit.prevent="handleSubmit">
       <div class="care-request-form__content">
         <div class="care-request-form__header">
-          <h2 class="care-request-form__title">What can we help with?</h2>
+          <h2 class="care-request-form__title">What's going on?</h2>
           <p class="care-request-form__description">
-            Share your caregiving situation with us. Describe what you need help with, 
-            any constraints or boundaries, and we'll help coordinate a care plan together.
+            Describe your situation in your own words. We'll help you figure out the rest.
           </p>
         </div>
 
         <div class="care-request-form__fields">
           <BaseTextArea
             v-model="formData.narrative"
-            label="Your Care Situation"
-            placeholder="Tell us about your care situation. For example: My mother is recovering from surgery and needs help with daily activities for the next two weeks. She lives alone and will need assistance with meals, transportation to appointments, and light housekeeping..."
-            :rows="8"
+            placeholder="My mom is recovering from surgery and needs help with meals and getting to appointments for the next few weeks..."
+            :rows="4"
             :max-length="VALIDATION.NARRATIVE_MAX_LENGTH"
-            :show-char-count="true"
+            :show-char-count="false"
             :auto-resize="true"
             :error="errors.narrative"
             required
-            hint="Be as detailed as you'd like. This helps us understand your needs better."
           />
 
           <div class="care-request-form__optional">
@@ -30,7 +27,7 @@
               class="care-request-form__optional-toggle"
               @click="showOptionalFields = !showOptionalFields"
             >
-              <span>{{ showOptionalFields ? 'Hide' : 'Add' }} additional details (optional)</span>
+              <span>{{ showOptionalFields ? 'Hide' : 'Add more context' }}</span>
               <BaseIcon 
                 :path="mdiChevronDown" 
                 :size="16"
@@ -38,40 +35,27 @@
               />
             </button>
 
-            <div v-if="showOptionalFields" class="care-request-form__optional-fields">
-              <BaseTextArea
-                v-model="formData.constraints"
-                label="Constraints & Timing"
-                placeholder="Are there specific time constraints, scheduling needs, or practical limitations we should know about?"
-                :rows="4"
-                :max-length="VALIDATION.CONSTRAINTS_MAX_LENGTH"
-                :show-char-count="true"
-                hint="E.g., weekday mornings only, needs to be near a specific location, etc."
-              />
+            <Transition name="slide-down">
+              <div v-if="showOptionalFields" class="care-request-form__optional-fields">
+                <BaseTextArea
+                  v-model="formData.constraints"
+                  label="Timing & Constraints"
+                  placeholder="Any time constraints or scheduling needs? (Optional)"
+                  :rows="3"
+                  :max-length="VALIDATION.CONSTRAINTS_MAX_LENGTH"
+                  :show-char-count="false"
+                />
 
-              <BaseTextArea
-                v-model="formData.boundaries"
-                label="Boundaries & Sensitivities"
-                placeholder="Are there any boundaries, privacy concerns, or sensitivities we should be mindful of?"
-                :rows="4"
-                :max-length="VALIDATION.BOUNDARIES_MAX_LENGTH"
-                :show-char-count="true"
-                hint="This helps us create a respectful and appropriate care plan."
-              />
-            </div>
-          </div>
-        </div>
-
-        <div class="care-request-form__info">
-          <div class="care-request-form__info-card">
-            <BaseIcon :path="mdiInformationOutline" :size="20" />
-            <div>
-              <strong>What happens next?</strong>
-              <p>
-                Our AI assistant will analyze your needs and generate a coordinated care plan. 
-                You'll have the opportunity to review and approve all tasks before they're shared with helpers.
-              </p>
-            </div>
+                <BaseTextArea
+                  v-model="formData.boundaries"
+                  label="Boundaries & Privacy"
+                  placeholder="Any privacy concerns or boundaries we should know about? (Optional)"
+                  :rows="3"
+                  :max-length="VALIDATION.BOUNDARIES_MAX_LENGTH"
+                  :show-char-count="false"
+                />
+              </div>
+            </Transition>
           </div>
         </div>
 
@@ -84,11 +68,11 @@
             :disabled="!isFormValid"
             full-width
           >
-            Create Care Plan
+            Get Help
           </BaseButton>
           
           <p class="care-request-form__privacy">
-            Your information is private and will only be shared with approved helpers.
+            Private and secure. Only shared with people you approve.
           </p>
         </div>
       </div>
@@ -104,7 +88,7 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import { VALIDATION } from '@/constants';
 import type { CareRequest } from '@/types';
-import { mdiChevronDown, mdiInformationOutline } from '@mdi/js';
+import { mdiChevronDown } from '@mdi/js';
 
 interface FormData {
   narrative: string;
@@ -172,11 +156,11 @@ const handleSubmit = async () => {
 
 <style scoped>
 .care-request-form {
-  max-width: 800px;
+  max-width: 680px;
   margin: 0 auto;
   border: none;
   background: var(--color-bg-primary);
-  box-shadow: var(--shadow-2xl);
+  box-shadow: var(--shadow-xl);
   position: relative;
   overflow: hidden;
 }
@@ -187,167 +171,110 @@ const handleSubmit = async () => {
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 3px;
   background: var(--color-primary-gradient);
 }
 
 .care-request-form__content {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2xl);
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl);
 }
 
 .care-request-form__header {
   text-align: center;
-  position: relative;
 }
 
 .care-request-form__title {
-  font-size: clamp(1.875rem, 4vw, 2.25rem);
+  font-size: clamp(1.5rem, 4vw, 1.875rem);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  margin-bottom: var(--spacing-md);
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  position: relative;
+  margin-bottom: var(--spacing-xs);
 }
 
 .care-request-form__description {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  line-height: var(--line-height-relaxed);
+  line-height: var(--line-height-normal);
   margin: 0;
 }
 
 .care-request-form__fields {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
+  gap: var(--spacing-md);
 }
 
 .care-request-form__optional {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .care-request-form__optional-toggle {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  background: var(--color-bg-secondary);
-  border: 2px solid var(--color-border-light);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  color: var(--color-primary);
-  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition: all var(--transition-base);
 }
 
 .care-request-form__optional-toggle:hover {
-  background: var(--color-primary-subtle);
+  background: var(--color-bg-secondary);
   border-color: var(--color-primary-light);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  color: var(--color-primary);
 }
 
-.care-request-form__optional-toggle:active {
-  transform: translateY(0);
+.care-request-form__optional-toggle svg {
+  transition: transform var(--transition-base);
 }
 
 .care-request-form__optional-fields {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
-  padding-top: var(--spacing-md);
-  animation: slideDown 0.4s ease-out;
+  gap: var(--spacing-md);
+  padding-top: var(--spacing-xs);
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    max-height: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    max-height: 1000px;
-    transform: translateY(0);
-  }
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease-out;
+  transform-origin: top;
 }
 
-.care-request-form__info {
-  margin: var(--spacing-lg) 0;
-}
-
-.care-request-form__info-card {
-  display: flex;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-xl);
-  background: linear-gradient(135deg, var(--color-primary-subtle) 0%, #fdf2f8 100%);
-  border-radius: var(--radius-xl);
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  position: relative;
-  transition: all var(--transition-base);
-}
-
-.care-request-form__info-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-xl);
-  padding: 2px;
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-secondary-light) 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
+.slide-down-enter-from,
+.slide-down-leave-to {
   opacity: 0;
-  transition: opacity var(--transition-base);
+  transform: scaleY(0.8);
+  max-height: 0;
 }
 
-.care-request-form__info-card:hover::before {
+.slide-down-enter-to,
+.slide-down-leave-from {
   opacity: 1;
-}
-
-.care-request-form__info-card svg {
-  flex-shrink: 0;
-  color: var(--color-primary);
-  margin-top: 4px;
-}
-
-.care-request-form__info-card:hover svg {
-  transform: scale(1.1);
-}
-
-.care-request-form__info-card strong {
-  display: block;
-  font-size: var(--font-size-lg);
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
-}
-
-.care-request-form__info-card p {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  line-height: var(--line-height-relaxed);
-  margin: 0;
+  transform: scaleY(1);
+  max-height: 600px;
 }
 
 .care-request-form__actions {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   align-items: center;
-  padding-top: var(--spacing-lg);
+  padding-top: var(--spacing-sm);
 }
 
 .care-request-form__privacy {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
   text-align: center;
   margin: 0;
@@ -358,21 +285,20 @@ const handleSubmit = async () => {
 
 .care-request-form__privacy::before {
   content: '🔒';
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
 }
 
 @media (max-width: 640px) {
+  .care-request-form__content {
+    padding: var(--spacing-xl);
+  }
+
   .care-request-form__title {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-xl);
   }
 
   .care-request-form__description {
-    font-size: var(--font-size-base);
-  }
-  
-  .care-request-form__info-card {
-    flex-direction: column;
-    gap: var(--spacing-md);
+    font-size: var(--font-size-xs);
   }
 }
 </style>

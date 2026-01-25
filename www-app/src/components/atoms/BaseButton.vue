@@ -72,7 +72,7 @@ const handleClick = (event: MouseEvent) => {
   font-weight: var(--font-weight-medium);
   text-align: center;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-base);
   white-space: nowrap;
@@ -84,7 +84,7 @@ const handleClick = (event: MouseEvent) => {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
   opacity: 0;
   transition: opacity var(--transition-base);
 }
@@ -97,7 +97,7 @@ const handleClick = (event: MouseEvent) => {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   opacity: 0;
   transition: opacity var(--transition-fast);
   pointer-events: none;
@@ -109,44 +109,45 @@ const handleClick = (event: MouseEvent) => {
 
 .button:focus-visible::after {
   opacity: 1;
-  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+  box-shadow: 0 0 0 4px var(--color-primary-subtle);
 }
 
 /* Sizes */
 .button--sm {
   padding: var(--spacing-sm) var(--spacing-md);
   font-size: var(--font-size-sm);
-  height: 32px;
+  height: 36px;
 }
 
 .button--md {
-  padding: var(--spacing-sm) var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
   font-size: var(--font-size-base);
-  height: 40px;
+  height: 44px;
 }
 
 .button--lg {
-  padding: var(--spacing-md) var(--spacing-xl);
-  font-size: var(--font-size-lg);
-  height: 48px;
+  padding: var(--spacing-md) var(--spacing-2xl);
+  font-size: var(--font-size-base);
+  height: 52px;
   font-weight: var(--font-weight-semibold);
 }
 
 /* Variants */
 .button--primary {
-  background: var(--color-primary-gradient);
+  background: var(--color-primary);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-weight: var(--font-weight-semibold);
 }
 
 .button--primary:hover:not(.button--disabled):not(.button--loading) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-colored);
+  background: var(--color-primary-dark);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 .button--primary:active:not(.button--disabled):not(.button--loading) {
   transform: translateY(0);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .button--secondary {

@@ -159,7 +159,6 @@ export function useMousePosition(): {
  * Composable for staggered animations
  */
 export function useStaggeredReveal(
-  count: number,
   baseDelay: number = 100
 ): {
   getDelay: (index: number) => string;

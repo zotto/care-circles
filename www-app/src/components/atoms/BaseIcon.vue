@@ -32,9 +32,6 @@ const currentColor = computed(() => props.color);
 
 const iconClasses = computed(() => ['mdi-icon']);
 
-const iconStyle = computed(() => ({
-  transform: props.rotate ? `rotate(${props.rotate}deg)` : undefined,
-}));
 </script>
 
 <style scoped>

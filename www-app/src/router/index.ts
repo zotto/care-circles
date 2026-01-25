@@ -30,7 +30,7 @@ const router = createRouter({
     //   },
     // },
   ],
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior(_to, _from, savedPosition) {
     if (savedPosition) {
       return savedPosition;
     } else {
@@ -40,7 +40,7 @@ const router = createRouter({
 });
 
 // Navigation guards
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   // Update page title
   document.title = (to.meta.title as string) || 'Care Circles';
   next();

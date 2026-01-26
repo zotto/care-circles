@@ -79,18 +79,19 @@
               </div>
             </div>
 
-            <div class="tasks-container">
-              <!-- Error State -->
-              <BaseCard v-if="careStore.error" class="error-card" variant="elevated">
-                <div class="error-card__content">
-                  <BaseIcon :path="mdiAlertCircle" :size="48" class="error-card__icon" />
-                  <h3 class="error-card__title">Unable to Generate Tasks</h3>
-                  <p class="error-card__message">{{ careStore.error }}</p>
-                </div>
-              </BaseCard>
+            <!-- Error State -->
+            <BaseCard v-if="careStore.error" class="care-plan-card error-card" variant="elevated">
+              <div class="error-card__content">
+                <BaseIcon :path="mdiAlertCircle" :size="48" class="error-card__icon" />
+                <h3 class="error-card__title">Unable to Generate Tasks</h3>
+                <p class="error-card__message">{{ careStore.error }}</p>
+              </div>
+            </BaseCard>
 
+            <!-- Care Plan Card with Integrated Actions -->
+            <BaseCard v-else class="care-plan-card" variant="elevated">
               <!-- Tasks List -->
-              <div v-else class="tasks-list">
+              <div class="care-plan-card__tasks">
                 <TransitionGroup name="task">
                   <div
                     v-for="(task, index) in careStore.tasks"
@@ -155,42 +156,41 @@
                     <BaseTextArea
                       v-model="task.description"
                       placeholder="Task description"
-                      :rows="2"
+                      :rows="4"
                       :auto-resize="true"
                       class="task-item__description"
                       @blur="handleTaskUpdate(task.id, { description: task.description })"
                     />
-
                   </div>
                 </TransitionGroup>
               </div>
 
-              <!-- Approve Actions -->
-              <div class="tasks-actions">
-                <div class="tasks-actions__info">
-                  <BaseIcon :path="mdiInformationOutline" :size="20" />
-                  <span>{{ careStore.tasks.length }} task{{ careStore.tasks.length !== 1 ? 's' : '' }} ready for approval</span>
+              <!-- Integrated Approve Actions Footer -->
+              <div class="care-plan-card__footer">
+                <div class="care-plan-card__footer-info">
+                  <BaseIcon :path="mdiInformationOutline" :size="16" />
+                  <span>{{ careStore.tasks.length }} task{{ careStore.tasks.length !== 1 ? 's' : '' }} ready</span>
                 </div>
-                <div class="tasks-actions__buttons">
+                <div class="care-plan-card__footer-actions">
                   <BaseButton
                     variant="outline"
-                    size="lg"
+                    size="md"
                     @click="handleResetClick"
                   >
                     Start Over
                   </BaseButton>
                   <BaseButton
                     variant="primary"
-                    size="lg"
+                    size="md"
                     @click="handleApprove"
                     :disabled="careStore.tasks.length === 0"
                   >
-                    <BaseIcon :path="mdiCheckCircle" :size="20" style="margin-right: 8px;" />
-                    Approve Care Plan
+                    <BaseIcon :path="mdiCheckCircle" :size="18" style="margin-right: 6px;" />
+                    Approve Plan
                   </BaseButton>
                 </div>
               </div>
-            </div>
+            </BaseCard>
           </section>
         </Transition>
       </div>
@@ -611,7 +611,7 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 .care-workflow__section {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
 .care-workflow__section--focused {
@@ -637,8 +637,9 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   padding: 0;
+  margin-bottom: var(--spacing-md);
 }
 
 .section-badge {
@@ -812,33 +813,46 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   border-top: 1px solid var(--color-border-light);
 }
 
-/* Tasks Container */
-.tasks-container {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-.tasks-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+/* Care Plan Card */
+.care-plan-card {
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
+  border: none;
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-family-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.care-plan-card__tasks {
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
 }
 
 /* Task Item - Compact Vertical Design */
 .task-item {
-  padding: var(--spacing-lg);
-  background: var(--color-bg-primary);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   transition: all var(--transition-base);
   animation: slideInUp 0.4s ease-out backwards;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.task-item .task-item__title {
+  margin-bottom: 2px;
+}
+
+.task-item .task-item__description {
+  margin-top: 2px;
 }
 
 @keyframes slideInUp {
@@ -854,20 +868,22 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
 .task-item:hover {
   border-color: var(--color-primary-light);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
+  background: var(--color-bg-primary);
 }
 
 .task-item__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
 }
 
 .task-item__badges {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   flex: 1;
 }
 
@@ -945,24 +961,29 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   color: var(--color-text-tertiary);
   font-weight: var(--font-weight-medium);
   text-transform: capitalize;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
+  padding: 2px var(--spacing-xs);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
 }
 
 .task-item__delete {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   background: transparent;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   color: var(--color-text-tertiary);
   cursor: pointer;
   transition: all var(--transition-base);
   flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.task-item:hover .task-item__delete {
+  opacity: 1;
 }
 
 .task-item__delete:hover {
@@ -972,46 +993,92 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
 .task-item__title {
   font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-base);
+  letter-spacing: -0.01em;
+  padding: 6px var(--spacing-sm) !important;
+  min-height: auto !important;
+  height: 32px !important;
+  line-height: 1.4 !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-sm) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+.task-item__title::placeholder {
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-tertiary);
+  opacity: 0.6;
 }
 
 .task-item__description {
   font-size: var(--font-size-base);
+  font-family: var(--font-family-base);
+  line-height: var(--line-height-relaxed);
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1;
 }
 
-
-/* Tasks Actions */
-.tasks-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-xl);
-  background: var(--color-bg-primary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+/* Target the textarea element inside BaseTextArea */
+.task-item__description :deep(.text-area__input) {
+  min-height: 100px !important;
+  max-height: 210px !important;
+  padding: var(--spacing-sm) var(--spacing-md) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  resize: none !important;
+  overflow-y: auto !important;
+  transition: height 0.15s ease-out;
+  height: auto !important;
 }
 
-.tasks-actions__info {
+.task-item__description::placeholder {
+  font-weight: var(--font-weight-normal);
+  color: var(--color-text-tertiary);
+  opacity: 0.6;
+}
+
+/* Care Plan Card Footer - Integrated Actions */
+.care-plan-card__footer {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  background: var(--color-info-light);
-  border-radius: var(--radius-md);
-  color: var(--color-info);
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border-light);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.care-plan-card__footer-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
 }
 
-.tasks-actions__buttons {
+.care-plan-card__footer-info svg {
+  color: var(--color-info);
+  flex-shrink: 0;
+}
+
+.care-plan-card__footer-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
 }
 
 /* Error Card */
 .error-card {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
   border: 1px solid var(--color-error-light);
   background: var(--color-bg-primary);
 }
@@ -1020,8 +1087,8 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-2xl);
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
   text-align: center;
 }
 
@@ -1220,12 +1287,34 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
     font-size: var(--font-size-xl);
   }
 
-  .tasks-list {
-    padding: 0 var(--spacing-sm);
+  .care-plan-card__tasks {
+    padding: var(--spacing-md);
+    gap: var(--spacing-xs);
   }
 
-  .tasks-actions__buttons {
+  .task-item {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .care-plan-card__footer {
     flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .care-plan-card__footer-info {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .care-plan-card__footer-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .care-plan-card__footer-actions .base-button {
+    width: 100%;
   }
 
   .status-card__meta {

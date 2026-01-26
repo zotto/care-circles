@@ -1192,6 +1192,60 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   margin-top: var(--spacing-sm);
 }
 
+/* Confirm Modal (Start Over & Delete Task) */
+.confirm-modal {
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow-2xl);
+  border: none;
+}
+
+.confirm-modal__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl);
+  text-align: center;
+}
+
+.confirm-modal__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-warning, #f59e0b);
+  margin-bottom: var(--spacing-xs);
+}
+
+.confirm-modal__title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.confirm-modal__message {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 100%;
+}
+
+.confirm-modal__actions {
+  display: flex;
+  gap: var(--spacing-md);
+  width: 100%;
+  margin-top: var(--spacing-xs);
+  justify-content: center;
+}
+
+.confirm-modal__actions .base-button {
+  flex: 1;
+  min-width: 120px;
+}
+
 /* Transitions */
 .section-enter-active,
 .section-leave-active {
@@ -1242,16 +1296,20 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 }
 
 .modal-enter-active .approval-modal,
-.modal-leave-active .approval-modal {
+.modal-leave-active .approval-modal,
+.modal-enter-active .confirm-modal,
+.modal-leave-active .confirm-modal {
   transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
 }
 
-.modal-enter-from .approval-modal {
+.modal-enter-from .approval-modal,
+.modal-enter-from .confirm-modal {
   transform: scale(0.8);
   opacity: 0;
 }
 
-.modal-leave-to .approval-modal {
+.modal-leave-to .approval-modal,
+.modal-leave-to .confirm-modal {
   transform: scale(0.8);
   opacity: 0;
 }
@@ -1333,6 +1391,25 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
   .status-progress__step {
     padding: var(--spacing-sm);
+  }
+
+  .confirm-modal {
+    max-width: calc(100% - var(--spacing-xl));
+  }
+
+  .confirm-modal__content {
+    padding: var(--spacing-xl);
+    gap: var(--spacing-md);
+  }
+
+  .confirm-modal__actions {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .confirm-modal__actions .base-button {
+    width: 100%;
+    min-width: unset;
   }
 }
 

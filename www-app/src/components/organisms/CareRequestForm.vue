@@ -13,7 +13,7 @@
           <BaseTextArea
             v-model="formData.narrative"
             placeholder="My mom is recovering from surgery and needs help with meals and getting to appointments for the next few weeks..."
-            :rows="4"
+            :rows="5"
             :max-length="VALIDATION.NARRATIVE_MAX_LENGTH"
             :show-char-count="false"
             :auto-resize="true"
@@ -44,6 +44,7 @@
                   :rows="3"
                   :max-length="VALIDATION.CONSTRAINTS_MAX_LENGTH"
                   :show-char-count="false"
+                  :auto-resize="true"
                 />
 
                 <BaseTextArea
@@ -53,6 +54,7 @@
                   :rows="3"
                   :max-length="VALIDATION.BOUNDARIES_MAX_LENGTH"
                   :show-char-count="false"
+                  :auto-resize="true"
                 />
               </div>
             </Transition>
@@ -63,7 +65,7 @@
           <BaseButton
             type="submit"
             variant="primary"
-            size="lg"
+            size="md"
             :loading="isSubmitting"
             :disabled="!isFormValid"
             full-width
@@ -156,13 +158,15 @@ const handleSubmit = async () => {
 
 <style scoped>
 .care-request-form {
-  max-width: 680px;
+  max-width: 800px;
   margin: 0 auto;
   border: none;
   background: var(--color-bg-primary);
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .care-request-form::before {
@@ -171,26 +175,29 @@ const handleSubmit = async () => {
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 2px;
   background: var(--color-primary-gradient);
 }
 
 .care-request-form__content {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-2xl);
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
 }
 
 .care-request-form__header {
   text-align: center;
+  margin-bottom: var(--spacing-xs);
 }
 
 .care-request-form__title {
-  font-size: clamp(1.5rem, 4vw, 1.875rem);
+  font-size: clamp(1.375rem, 3.5vw, 1.625rem);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   margin-bottom: var(--spacing-xs);
+  letter-spacing: -0.02em;
+  font-feature-settings: "kern" 1, "liga" 1;
 }
 
 .care-request-form__description {
@@ -198,34 +205,65 @@ const handleSubmit = async () => {
   color: var(--color-text-secondary);
   line-height: var(--line-height-normal);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .care-request-form__fields {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
+}
+
+/* Main narrative textarea - compact and auto-expanding */
+.care-request-form__fields > :deep(.text-area) {
+  margin-bottom: var(--spacing-xs);
+}
+
+.care-request-form__fields > :deep(.text-area__input) {
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-base);
+  line-height: var(--line-height-relaxed);
+  letter-spacing: -0.01em;
+  min-height: 120px !important;
+  max-height: 280px !important;
+  padding: var(--spacing-md) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  resize: none !important;
+  overflow-y: auto !important;
+  transition: height 0.15s ease-out;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+.care-request-form__fields > :deep(.text-area__input::placeholder) {
+  opacity: 0.6;
+  font-weight: var(--font-weight-normal);
 }
 
 .care-request-form__optional {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
 }
 
 .care-request-form__optional-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: transparent;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition: all var(--transition-base);
+  letter-spacing: -0.01em;
 }
 
 .care-request-form__optional-toggle:hover {
@@ -241,8 +279,44 @@ const handleSubmit = async () => {
 .care-request-form__optional-fields {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  padding-top: var(--spacing-xs);
+  gap: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+}
+
+/* Optional fields textareas - compact */
+.care-request-form__optional-fields > :deep(.text-area) {
+  margin-bottom: 0;
+}
+
+.care-request-form__optional-fields > :deep(.text-area__label) {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
+  letter-spacing: -0.01em;
+}
+
+.care-request-form__optional-fields > :deep(.text-area__input) {
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-base);
+  line-height: var(--line-height-relaxed);
+  letter-spacing: -0.01em;
+  min-height: 80px !important;
+  max-height: 180px !important;
+  padding: var(--spacing-sm) var(--spacing-md) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  resize: none !important;
+  overflow-y: auto !important;
+  transition: height 0.15s ease-out;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+.care-request-form__optional-fields > :deep(.text-area__input::placeholder) {
+  opacity: 0.6;
+  font-weight: var(--font-weight-normal);
 }
 
 .slide-down-enter-active,
@@ -268,9 +342,10 @@ const handleSubmit = async () => {
 .care-request-form__actions {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
   align-items: center;
   padding-top: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
 }
 
 .care-request-form__privacy {
@@ -280,18 +355,22 @@ const handleSubmit = async () => {
   margin: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-xs);
+  opacity: 0.8;
+  letter-spacing: -0.01em;
 }
 
 .care-request-form__privacy::before {
   content: '🔒';
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
 }
 
 @media (max-width: 640px) {
   .care-request-form__content {
     padding: var(--spacing-lg);
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
   }
 
   .care-request-form__title {
@@ -303,7 +382,18 @@ const handleSubmit = async () => {
   }
 
   .care-request-form__fields {
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
+  }
+
+  .care-request-form__fields > :deep(.text-area__input) {
+    min-height: 100px !important;
+    max-height: 240px !important;
+    padding: var(--spacing-sm) !important;
+  }
+
+  .care-request-form__optional-fields > :deep(.text-area__input) {
+    min-height: 70px !important;
+    max-height: 160px !important;
   }
 }
 </style>

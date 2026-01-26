@@ -15,6 +15,8 @@ export const useCareStore = defineStore('care', () => {
   const activeJob = ref<any | null>(null); // Using any to allow extra properties
   const currentJobId = ref<string | null>(null);
   const tasks = ref<CareTask[]>([]);
+  const currentPlanId = ref<string | null>(null);
+  const shareUrl = ref<string | null>(null);
   const isLoading = ref(false);
   const isPolling = ref(false);
   const error = ref<string | null>(null);
@@ -204,6 +206,65 @@ export const useCareStore = defineStore('care', () => {
     error.value = null;
   };
 
+  const approvePlan = async (planName?: string): Promise<string | null> => {
+    if (!tasks.value || tasks.value.length === 0) {
+      error.value = 'No tasks to approve';
+      return null;
+    }
+
+    const latestReq = latestRequest();
+    if (!latestReq) {
+      error.value = 'No care request found';
+      return null;
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      // Use provided plan name or default to 'Care Plan'
+      const finalPlanName = planName?.trim() || 'Care Plan';
+      console.log('Approving plan with name:', finalPlanName, 'provided:', planName);
+
+      // First, create the care plan (if not already created)
+      if (!currentPlanId.value) {
+        console.log('Creating new plan with name:', finalPlanName);
+        const planResponse = await api.createCarePlan(
+          latestReq.id,
+          finalPlanName,
+          tasks.value.map(task => ({
+            title: task.title,
+            description: task.description,
+            category: task.category,
+            priority: task.priority,
+          }))
+        );
+        currentPlanId.value = planResponse.plan_id;
+      } else {
+        // Plan already exists, update the name
+        console.log('Updating existing plan', currentPlanId.value, 'with name:', finalPlanName);
+        await api.updateCarePlan(currentPlanId.value, finalPlanName);
+      }
+
+      // Approve the plan
+      await api.approveCarePlan(currentPlanId.value);
+
+      // Generate share link
+      const shareResponse = await api.generateShareLink(currentPlanId.value);
+      // Construct full URL for sharing
+      const baseUrl = window.location.origin;
+      shareUrl.value = `${baseUrl}${shareResponse.share_url}`;
+
+      return shareUrl.value;
+    } catch (err) {
+      const apiError = err as ApiError;
+      error.value = apiError.message || 'Failed to approve plan';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   const reset = () => {
     stopPolling();
     currentCareCircle.value = null;
@@ -211,6 +272,8 @@ export const useCareStore = defineStore('care', () => {
     activeJob.value = null;
     currentJobId.value = null;
     tasks.value = [];
+    currentPlanId.value = null;
+    shareUrl.value = null;
     isLoading.value = false;
     isPolling.value = false;
     error.value = null;
@@ -223,6 +286,8 @@ export const useCareStore = defineStore('care', () => {
     activeJob,
     currentJobId,
     tasks,
+    currentPlanId,
+    shareUrl,
     isLoading,
     isPolling,
     error,
@@ -243,6 +308,7 @@ export const useCareStore = defineStore('care', () => {
     updateTask,
     deleteTask,
     clearError,
+    approvePlan,
     reset,
   };
 });

@@ -97,6 +97,18 @@
 
       </div>
     </div>
+
+    <!-- Error Dialog -->
+    <ConfirmDialog
+      ref="errorDialog"
+      :title="errorDialogTitle"
+      :message="errorDialogMessage"
+      confirm-text="OK"
+      :cancel-text="''"
+      variant="danger"
+      :icon="mdiAlertCircle"
+      @confirm="closeErrorDialog"
+    />
   </div>
 </template>
 
@@ -105,14 +117,19 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import CareRequestForm from '@/components/organisms/CareRequestForm.vue';
 import BaseCard from '@/components/atoms/BaseCard.vue';
+import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import { useCareStore } from '@/stores/careStore';
 import { useScrollReveal } from '@/composables/useAnimations';
 import { ANIMATION } from '@/constants';
 import type { CareRequest } from '@/types';
+import { mdiAlertCircle } from '@mdi/js';
 
 const router = useRouter();
 const careStore = useCareStore();
 const showSuccess = ref(false);
+const errorDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
+const errorDialogTitle = ref('Error');
+const errorDialogMessage = ref('');
 
 // Scroll reveal for different sections (refs used in template)
 // Since form is compact, make elements visible immediately
@@ -155,12 +172,21 @@ const handleSubmit = async (data: Omit<CareRequest, 'id' | 'care_circle_id' | 's
     setTimeout(() => {
       router.push('/tasks');
     }, 2000);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to submit care request:', error);
-    // Show error notification or inline message
-    alert('Failed to submit care request. Please try again.');
+    showError('Failed to Submit Request', error.message || 'Failed to submit care request. Please try again.');
   }
 };
+
+function showError(title: string, message: string) {
+  errorDialogTitle.value = title;
+  errorDialogMessage.value = message;
+  errorDialog.value?.open();
+}
+
+function closeErrorDialog() {
+  errorDialog.value?.close();
+}
 
 const onSuccessEnter = (el: Element) => {
   const htmlEl = el as HTMLElement;

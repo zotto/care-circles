@@ -77,3 +77,43 @@ class TaskNames:
     REVIEW_QUALITY = "review_quality"
     OPTIMIZE_PLAN = "optimize_plan"
     ASSEMBLE_REVIEW = "assemble_review"
+
+
+class AuthConstants:
+    """Authentication and authorization constants"""
+    
+    JWT_ALGORITHM = "HS256"
+    TOKEN_TYPE = "Bearer"
+    AUTH_HEADER_NAME = "Authorization"
+    TOKEN_PREFIX = "Bearer "
+
+
+class TaskStatusConstants:
+    """Care task status constants (extended)"""
+    
+    DRAFT = "draft"
+    AVAILABLE = "available"
+    CLAIMED = "claimed"
+    COMPLETED = "completed"
+
+
+class PlanStatusConstants:
+    """Care plan status constants"""
+    
+    DRAFT = "draft"
+    APPROVED = "approved"
+    ACTIVE = "active"
+
+
+class CircleMemberRole:
+    """Care circle member role constants"""
+    
+    OWNER = "owner"
+    MEMBER = "member"
+
+
+class ShareConstants:
+    """Share link constants"""
+    
+    SHARE_TOKEN_LENGTH = 32
+    SHARE_URL_PATH = "/shared"

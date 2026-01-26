@@ -11,8 +11,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.models.domain import CareRequest
 from app.models.responses import CareRequestResponse, CareRequestCreate
-from app.api.dependencies import auth_placeholder
+from app.middleware.auth import get_current_user, AuthUser
 from app.config.constants import RequestStatus
+from app.db import get_service_client
+from app.db.repositories.care_request_repository import CareRequestRepository
+from app.db.repositories.job_repository import JobRepository
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +31,7 @@ router = APIRouter()
 )
 async def create_care_request(
     request: CareRequestCreate,
-    user_context: dict = Depends(auth_placeholder)
+    user: AuthUser = Depends(get_current_user)
 ):
     """
     Create a new care request and enqueue it for AI agent processing.
@@ -39,7 +42,7 @@ async def create_care_request(
     
     Args:
         request: The care request data
-        user_context: User authentication context (placeholder)
+        user: Authenticated user from JWT
         
     Returns:
         CareRequestResponse: The created care request and job ID
@@ -47,30 +50,72 @@ async def create_care_request(
     from app.main import get_job_runner
     
     try:
-        # Generate unique IDs
-        care_request_id = f"req_{uuid4().hex[:16]}"
-        care_circle_id = request.care_circle_id or f"circle_{uuid4().hex[:16]}"
+        # Log incoming request for debugging
+        logger.info(f"Received care request: care_circle_id={request.care_circle_id}, narrative_length={len(request.narrative) if request.narrative else 0}")
         
-        # Create CareRequest domain object
+        db = get_service_client()
+        request_repo = CareRequestRepository(db)
+        
+        # If no care_circle_id provided, create a default one for the user
+        care_circle_id = request.care_circle_id
+        if not care_circle_id:
+            logger.info(f"No care_circle_id provided, creating default circle for user {user.user_id}")
+            from app.db.repositories.care_circle_repository import CareCircleRepository
+            circle_repo = CareCircleRepository(db)
+            
+            # Check if user already has a default circle
+            user_circles = circle_repo.get_user_circles(user.user_id)
+            if user_circles and len(user_circles) > 0:
+                # Use the first circle
+                care_circle_id = user_circles[0]["id"]
+                logger.info(f"Using existing circle {care_circle_id} for user {user.user_id}")
+            else:
+                # Create a new default circle
+                circle_data = {
+                    "name": "My Care Circle",
+                    "description": "Default care circle",
+                    "owner_id": user.user_id
+                }
+                new_circle = circle_repo.create(circle_data)
+                care_circle_id = new_circle["id"]
+                logger.info(f"Created new default circle {care_circle_id} for user {user.user_id}")
+                
+                # Add user as owner member
+                circle_repo.add_member(care_circle_id, user.user_id, "owner")
+        
+        # Create care request in database
+        care_request_data = {
+            "care_circle_id": care_circle_id,
+            "created_by": user.user_id,
+            "narrative": request.narrative,
+            "constraints": request.constraints,
+            "boundaries": request.boundaries,
+            "status": RequestStatus.SUBMITTED
+        }
+        
+        care_request_record = request_repo.create(care_request_data)
+        
+        # Create CareRequest domain object for job runner
         care_request = CareRequest(
-            id=care_request_id,
-            care_circle_id=care_circle_id,
-            narrative=request.narrative,
-            constraints=request.constraints,
-            boundaries=request.boundaries,
-            status=RequestStatus.SUBMITTED,
-            created_at=datetime.utcnow()
+            id=care_request_record["id"],
+            care_circle_id=care_request_record["care_circle_id"],
+            narrative=care_request_record["narrative"],
+            constraints=care_request_record.get("constraints"),
+            boundaries=care_request_record.get("boundaries"),
+            status=care_request_record["status"],
+            created_at=datetime.fromisoformat(care_request_record["created_at"])
         )
         
-        logger.info(f"Created care request: {care_request_id}")
+        logger.info(f"Created care request: {care_request.id}")
         
         # Enqueue job for agent processing
         runner = get_job_runner()
         job = await runner.enqueue_job(care_request)
         
-        logger.info(f"Enqueued job {job.id} for care request {care_request_id}")
+        logger.info(f"Enqueued job {job.id} for care request {care_request.id}")
         
-        # Update request status to processing
+        # Update request status to processing in database
+        request_repo.update(care_request.id, {"status": RequestStatus.PROCESSING})
         care_request.status = RequestStatus.PROCESSING
         
         return CareRequestResponse(
@@ -78,6 +123,8 @@ async def create_care_request(
             job_id=job.id
         )
         
+    except HTTPException:
+        raise
     except ValueError as e:
         logger.warning(f"Validation error creating care request: {str(e)}")
         raise HTTPException(
@@ -100,31 +147,56 @@ async def create_care_request(
 )
 async def get_care_request(
     request_id: str,
-    user_context: dict = Depends(auth_placeholder)
+    user: AuthUser = Depends(get_current_user)
 ):
     """
     Retrieve a care request by its ID.
     
-    Note: In the current in-memory implementation, this endpoint will
-    need to be enhanced when database persistence is added.
-    
     Args:
         request_id: The care request ID
-        user_context: User authentication context (placeholder)
+        user: Authenticated user from JWT
         
     Returns:
         CareRequest: The care request details
     """
-    from app.main import get_job_runner
+    try:
+        db = get_service_client()
+        request_repo = CareRequestRepository(db)
+        
+        care_request_record = request_repo.get_by_id(request_id)
+        
+        if not care_request_record:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Care request {request_id} not found"
+            )
+        
+        # Check if user has access (member of circle)
+        from app.db.repositories.care_circle_repository import CareCircleRepository
+        circle_repo = CareCircleRepository(db)
+        
+        if not circle_repo.is_member(care_request_record["care_circle_id"], user.user_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access to this care request"
+            )
+        
+        # Convert to domain model
+        return CareRequest(
+            id=care_request_record["id"],
+            care_circle_id=care_request_record["care_circle_id"],
+            narrative=care_request_record["narrative"],
+            constraints=care_request_record.get("constraints"),
+            boundaries=care_request_record.get("boundaries"),
+            status=care_request_record["status"],
+            created_at=datetime.fromisoformat(care_request_record["created_at"])
+        )
     
-    runner = get_job_runner()
-    
-    # Find the care request through jobs
-    for job in runner.jobs.values():
-        if job.care_request and job.care_request.id == request_id:
-            return job.care_request
-    
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Care request {request_id} not found"
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting care request: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get care request"
+        )

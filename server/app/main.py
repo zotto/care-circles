@@ -14,7 +14,7 @@ from app.config.constants import APIConstants
 from app.middleware.cors import setup_cors
 from app.middleware.error_handlers import setup_error_handlers
 from app.models.responses import HealthCheckResponse
-from app.api.routes import care_requests, jobs
+from app.api.routes import care_requests, jobs, auth, users, care_circles, care_plans, tasks, shares
 from app.services.job_runner import JobRunner
 
 # Configure logging
@@ -64,7 +64,13 @@ setup_cors(app)
 setup_error_handlers(app)
 
 # Include routers
+app.include_router(auth.router, prefix="/api", tags=["Authentication"])
+app.include_router(users.router, prefix="/api", tags=["Users"])
+app.include_router(care_circles.router, prefix="/api", tags=["Care Circles"])
 app.include_router(care_requests.router, prefix="/api", tags=["Care Requests"])
+app.include_router(care_plans.router, prefix="/api", tags=["Care Plans"])
+app.include_router(tasks.router, prefix="/api", tags=["Tasks"])
+app.include_router(shares.router, prefix="/api", tags=["Shares"])
 app.include_router(jobs.router, prefix="/api", tags=["Jobs"])
 
 

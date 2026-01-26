@@ -22,6 +22,17 @@
       </div>
     </div>
 
+    <!-- Plan Name Input (Compact) -->
+    <div v-if="tasks.length > 0" class="task-review-panel__plan-name">
+      <BaseInput
+        v-model="planName"
+        label="Plan Name"
+        placeholder="Enter a name for this care plan"
+        :required="true"
+        class="plan-name-input--compact"
+      />
+    </div>
+
     <!-- Job Status Indicator -->
     <div v-if="jobStatus" class="task-review-panel__status">
       <BaseBadge :variant="getStatusVariant(jobStatus)">
@@ -137,6 +148,7 @@
             variant="primary"
             size="lg"
             @click="handleApprove"
+            :disabled="!planName || planName.trim() === ''"
           >
             <BaseIcon :path="mdiCheck" :size="20" style="margin-right: 8px;" />
             Approve Plan
@@ -187,12 +199,13 @@ const emit = defineEmits<{
   refresh: [];
   updateTask: [taskId: string, updates: Partial<CareTask>];
   deleteTask: [taskId: string];
-  approve: [];
+  approve: [planName: string];
   cancel: [];
 }>();
 
 const isRefreshing = ref(false);
 const categories = TASK_CATEGORIES;
+const planName = ref('Care Plan');
 
 const handleRefresh = async () => {
   isRefreshing.value = true;
@@ -211,7 +224,12 @@ const handleDeleteTask = (taskId: string) => {
 };
 
 const handleApprove = () => {
-  emit('approve');
+  if (!planName.value || planName.value.trim() === '') {
+    return;
+  }
+  const trimmedName = planName.value.trim();
+  console.log('TaskReviewPanel: Emitting approve with plan name:', trimmedName);
+  emit('approve', trimmedName);
 };
 
 const getStatusVariant = (status: string): 'default' | 'success' | 'warning' | 'danger' => {
@@ -459,6 +477,22 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.task-review-panel__plan-name {
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-secondary);
+}
+
+.plan-name-input--compact :deep(.base-input__label) {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.plan-name-input--compact :deep(.base-input__input) {
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
 }
 
 .task-review-panel__approve {

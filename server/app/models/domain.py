@@ -78,11 +78,30 @@ class NeedsMap(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
 
 
+class CarePlan(BaseModel):
+    """
+    Represents a generated care plan for a care request
+    """
+    id: str = Field(..., description="Unique identifier for the care plan")
+    care_request_id: str = Field(..., description="Associated care request ID")
+    care_circle_id: str = Field(..., description="Associated care circle ID")
+    created_by: str = Field(..., description="User ID who created the plan")
+    summary: str = Field(..., description="Executive summary of the care plan")
+    status: str = Field(..., description="Plan status (draft, approved, active)")
+    agent_notes: Optional[str] = Field(None, description="Notes and rationale from the agent pipeline")
+    approval_status: Optional[str] = Field(None, description="Approval status (deprecated, use status)")
+    approved_at: Optional[datetime] = Field(None, description="Approval timestamp")
+    approved_by: Optional[str] = Field(None, description="User ID who approved the plan")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
+
+
 class CareTask(BaseModel):
     """
     Actionable unit of work for helpers
     """
     id: str = Field(..., description="Unique identifier for the task")
+    care_plan_id: Optional[str] = Field(None, description="Associated care plan ID (null for draft tasks)")
     care_circle_id: str = Field(..., description="Associated care circle ID")
     care_request_id: str = Field(..., description="Associated care request ID")
     title: str = Field(..., description="Short, clear task title")
@@ -90,7 +109,11 @@ class CareTask(BaseModel):
     category: str = Field(..., description="Task category (e.g., meals, transportation, medical)")
     priority: str = Field(default=TaskPriority.MEDIUM, description="Task priority level")
     status: str = Field(default=TaskStatus.DRAFT, description="Current task status")
+    claimed_by: Optional[str] = Field(None, description="User ID who claimed the task")
+    claimed_at: Optional[datetime] = Field(None, description="Task claim timestamp")
+    completed_at: Optional[datetime] = Field(None, description="Task completion timestamp")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
     
     @field_validator('priority')
     @classmethod

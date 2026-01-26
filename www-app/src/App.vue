@@ -5,13 +5,29 @@
       <RouterView />
     </main>
     <AppFooter />
+    <LoginModal v-model="showLoginModal" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { RouterView } from 'vue-router';
+import { watch } from 'vue';
+import { RouterView, useRouter } from 'vue-router';
 import AppHeader from '@/components/organisms/AppHeader.vue';
 import AppFooter from '@/components/organisms/AppFooter.vue';
+import LoginModal from '@/components/organisms/LoginModal.vue';
+import { useLoginModal } from '@/composables/useLoginModal';
+import { useAuthStore } from '@/stores/authStore';
+
+const router = useRouter();
+const authStore = useAuthStore();
+const { showLoginModal, close: closeLoginModal } = useLoginModal();
+
+// Close login modal if user becomes authenticated
+watch(() => authStore.isAuthenticated, (isAuthenticated) => {
+  if (isAuthenticated && showLoginModal.value) {
+    closeLoginModal();
+  }
+});
 </script>
 
 <style scoped>

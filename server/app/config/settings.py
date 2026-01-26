@@ -56,9 +56,11 @@ class Settings(BaseSettings):
         description="Allowed CORS origins (comma-separated string or JSON array)"
     )
     
-    # Future: Supabase Configuration (placeholder for auth integration)
-    SUPABASE_URL: str = Field(default="", description="Supabase project URL")
-    SUPABASE_KEY: str = Field(default="", description="Supabase anon key")
+    # Supabase Configuration
+    SUPABASE_URL: str = Field(..., description="Supabase project URL")
+    SUPABASE_ANON_KEY: str = Field(..., description="Supabase anon key")
+    SUPABASE_SERVICE_ROLE_KEY: str = Field(..., description="Supabase service role key (for server-side operations)")
+    SUPABASE_JWT_SECRET: str = Field(..., description="Supabase JWT secret for token verification")
     
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -90,6 +90,17 @@
 
             <!-- Care Plan Card with Integrated Actions -->
             <BaseCard v-else class="care-plan-card" variant="elevated">
+              <!-- Plan Name Input (Compact) -->
+              <div class="care-plan-card__plan-name">
+                <BaseInput
+                  v-model="planName"
+                  label="Plan Name"
+                  placeholder="Enter a name for this care plan"
+                  :required="true"
+                  class="plan-name-input--compact"
+                />
+              </div>
+
               <!-- Tasks List -->
               <div class="care-plan-card__tasks">
                 <TransitionGroup name="task">
@@ -183,7 +194,7 @@
                     variant="primary"
                     size="md"
                     @click="handleApprove"
-                    :disabled="careStore.tasks.length === 0"
+                    :disabled="careStore.tasks.length === 0 || !planName || planName.trim() === ''"
                   >
                     <BaseIcon :path="mdiCheckCircle" :size="18" style="margin-right: 6px;" />
                     Approve Plan
@@ -227,6 +238,31 @@
             <p class="approval-modal__message">
               Your care plan has been successfully approved and is ready to share with your helpers.
             </p>
+
+            <!-- Share Link Section -->
+            <div v-if="planShareUrl" class="approval-modal__share">
+              <label class="approval-modal__share-label">Share this link with volunteers:</label>
+              <div class="approval-modal__share-box">
+                <input 
+                  ref="shareUrlInput"
+                  type="text" 
+                  :value="planShareUrl" 
+                  readonly 
+                  class="approval-modal__share-input"
+                  @click="selectShareUrl"
+                />
+                <BaseButton
+                  variant="outline"
+                  size="sm"
+                  @click="copyShareUrl"
+                  class="approval-modal__copy-btn"
+                  :class="{ 'is-copied': isCopied }"
+                >
+                  <BaseIcon :path="isCopied ? mdiCheck : mdiContentCopy" :size="16" style="margin-right: 4px;" />
+                  {{ isCopied ? 'Copied!' : 'Copy' }}
+                </BaseButton>
+              </div>
+            </div>
 
             <div class="approval-modal__actions">
               <BaseButton
@@ -308,6 +344,18 @@
         </BaseCard>
       </div>
     </Transition>
+
+    <!-- Error Dialog -->
+    <ConfirmDialog
+      ref="errorDialog"
+      :title="errorDialogTitle"
+      :message="errorDialogMessage"
+      confirm-text="OK"
+      :cancel-text="''"
+      variant="danger"
+      :icon="mdiAlertCircle"
+      @confirm="closeErrorDialog"
+    />
   </div>
 </template>
 
@@ -320,6 +368,7 @@ import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import BaseBadge from '@/components/atoms/BaseBadge.vue';
 import BaseInput from '@/components/atoms/BaseInput.vue';
 import BaseTextArea from '@/components/atoms/BaseTextArea.vue';
+import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import { useCareStore } from '@/stores/careStore';
 import type { CareRequest, CareTask } from '@/types';
 import { PROCESSING_STEPS, TASK_PRIORITIES } from '@/constants';
@@ -330,17 +379,26 @@ import {
   mdiCheckCircle, 
   mdiInformationOutline,
   mdiAlertCircle,
-  mdiChevronDown
+  mdiChevronDown,
+  mdiContentCopy,
+  mdiCheck
 } from '@mdi/js';
 
 const careStore = useCareStore();
 const requestSubmitted = ref(false);
 const showApprovalSuccess = ref(false);
 const isPlanApproved = ref(false);
+const planShareUrl = ref<string | null>(null);
+const shareUrlInput = ref<HTMLInputElement | null>(null);
+const isCopied = ref(false);
 const activePriorityDropdown = ref<string | null>(null);
 const showDeleteModal = ref(false);
 const showResetModal = ref(false);
+const errorDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
+const errorDialogTitle = ref('Error');
+const errorDialogMessage = ref('');
 const taskToDelete = ref<string | null>(null);
+const planName = ref('Care Plan');
 
 const currentStepIndex = computed(() => {
   if (!careStore.activeJob) return -1;
@@ -424,9 +482,9 @@ const handleSubmit = async (data: Omit<CareRequest, 'id' | 'care_circle_id' | 's
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 100);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to submit care request:', error);
-    alert('Failed to submit care request. Please try again.');
+    showError('Failed to Submit Request', error.message || 'Failed to submit care request. Please try again.');
   }
 };
 
@@ -461,10 +519,30 @@ const handleCloseDeleteModal = () => {
   taskToDelete.value = null;
 };
 
-const handleApprove = () => {
-  showApprovalSuccess.value = true;
-  isPlanApproved.value = true;
+const handleApprove = async () => {
+  if (!planName.value || planName.value.trim() === '') {
+    return;
+  }
+  try {
+    const shareUrl = await careStore.approvePlan(planName.value.trim());
+    planShareUrl.value = shareUrl;
+    showApprovalSuccess.value = true;
+    isPlanApproved.value = true;
+  } catch (error: any) {
+    console.error('Failed to approve plan:', error);
+    showError('Failed to Approve Plan', error.message || 'Failed to approve plan. Please try again.');
+  }
 };
+
+function showError(title: string, message: string) {
+  errorDialogTitle.value = title;
+  errorDialogMessage.value = message;
+  errorDialog.value?.open();
+}
+
+function closeErrorDialog() {
+  errorDialog.value?.close();
+}
 
 const handleResetClick = () => {
   // If plan is already approved, reset directly without confirmation
@@ -481,6 +559,8 @@ const confirmReset = () => {
   requestSubmitted.value = false;
   showResetModal.value = false;
   isPlanApproved.value = false;
+  planShareUrl.value = null;
+  planName.value = 'Care Plan';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
@@ -494,6 +574,29 @@ const handleCloseModal = () => {
   setTimeout(() => {
     confirmReset();
   }, 300);
+};
+
+const selectShareUrl = () => {
+  if (shareUrlInput.value) {
+    shareUrlInput.value.select();
+  }
+};
+
+const copyShareUrl = async () => {
+  if (planShareUrl.value) {
+    try {
+      await navigator.clipboard.writeText(planShareUrl.value);
+      isCopied.value = true;
+      // Reset after 2 seconds
+      setTimeout(() => {
+        isCopied.value = false;
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      // Fallback: select the text
+      selectShareUrl();
+    }
+  }
 };
 
 const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning' | 'danger' => {
@@ -1043,6 +1146,22 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 }
 
 /* Care Plan Card Footer - Integrated Actions */
+.care-plan-card__plan-name {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-bg-secondary);
+}
+
+.plan-name-input--compact :deep(.base-input__label) {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.plan-name-input--compact :deep(.base-input__input) {
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
 .care-plan-card__footer {
   display: flex;
   align-items: center;
@@ -1185,6 +1304,62 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   line-height: 1.6;
   margin: 0;
   max-width: 400px;
+}
+
+.approval-modal__share {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.approval-modal__share-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+.approval-modal__share-box {
+  display: flex;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.approval-modal__share-input {
+  flex: 1;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-mono, 'Monaco', 'Courier New', monospace);
+  color: var(--color-text-primary);
+  background: var(--color-bg-secondary);
+  cursor: text;
+  transition: all var(--transition-base);
+  min-width: 0; /* Allow input to shrink */
+}
+
+.approval-modal__share-input:hover {
+  border-color: var(--color-primary-light);
+}
+
+.approval-modal__share-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: var(--color-bg-primary);
+}
+
+.approval-modal__copy-btn {
+  flex-shrink: 0;
+  transition: all var(--transition-base);
+}
+
+.approval-modal__copy-btn.is-copied {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: white;
 }
 
 .approval-modal__actions {
@@ -1391,6 +1566,23 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
   .status-progress__step {
     padding: var(--spacing-sm);
+  }
+
+  .approval-modal {
+    max-width: calc(100% - var(--spacing-xl));
+  }
+
+  .approval-modal__content {
+    padding: var(--spacing-xl);
+    gap: var(--spacing-md);
+  }
+
+  .approval-modal__share-box {
+    flex-direction: column;
+  }
+
+  .approval-modal__copy-btn {
+    width: 100%;
   }
 
   .confirm-modal {

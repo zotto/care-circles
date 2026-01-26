@@ -2,19 +2,19 @@
   <header class="app-header">
     <div class="app-header__container">
       <!-- Left: Brand -->
-      <router-link to="/" class="app-header__brand">
+      <router-link :to="isAuthenticated ? '/dashboard' : '/'" class="app-header__brand">
         <div class="app-header__logo">
           <BaseIcon :path="mdiHeartCircle" :size="20" />
         </div>
         <span class="app-header__name">Care Circles</span>
       </router-link>
       
-      <!-- Center: Navigation -->
-      <nav class="app-header__nav">
+      <!-- Center: Navigation (only when authenticated) -->
+      <nav v-if="isAuthenticated" class="app-header__nav">
         <router-link 
-          to="/" 
+          to="/dashboard" 
           class="app-header__nav-link"
-          :class="{ 'is-active': currentRoute === '/' }"
+          :class="{ 'is-active': currentRoute === '/dashboard' }"
         >
           <BaseIcon :path="mdiHome" :size="16" />
           <span>Home</span>
@@ -27,69 +27,92 @@
           <BaseIcon :path="mdiFileDocumentMultiple" :size="16" />
           <span>My Plans</span>
         </router-link>
+        <router-link 
+          to="/my-tasks" 
+          class="app-header__nav-link"
+          :class="{ 'is-active': currentRoute === '/my-tasks' }"
+        >
+          <BaseIcon :path="mdiClipboardCheck" :size="16" />
+          <span>My Tasks</span>
+        </router-link>
       </nav>
 
-      <!-- Right: User Menu -->
+      <!-- Right: User Menu or Sign In -->
       <div class="app-header__user">
-        <div class="app-header__user-trigger" @click="toggleUserMenu" ref="userMenuTrigger">
-          <div class="app-header__user-avatar">
-            <BaseIcon :path="mdiAccount" :size="18" />
+        <!-- Authenticated: User Menu -->
+        <template v-if="isAuthenticated && user">
+          <div class="app-header__user-trigger" @click="toggleUserMenu" ref="userMenuTrigger">
+            <div class="app-header__user-avatar">
+              <BaseIcon :path="mdiAccount" :size="18" />
+            </div>
+            <span class="app-header__username">{{ displayName }}</span>
+            <BaseIcon 
+              :path="mdiChevronDown" 
+              :size="16" 
+              class="app-header__dropdown-icon"
+              :class="{ 'is-open': isUserMenuOpen }"
+            />
           </div>
-          <span class="app-header__username">{{ user.name }}</span>
-          <BaseIcon 
-            :path="mdiChevronDown" 
-            :size="16" 
-            class="app-header__dropdown-icon"
-            :class="{ 'is-open': isUserMenuOpen }"
-          />
-        </div>
 
-        <!-- Dropdown Menu -->
-        <Transition name="dropdown">
-          <div 
-            v-if="isUserMenuOpen" 
-            class="app-header__dropdown"
-            ref="userMenuDropdown"
-          >
-            <div class="app-header__dropdown-section">
-              <div class="app-header__dropdown-user-info">
-                <div class="app-header__dropdown-avatar">
-                  <BaseIcon :path="mdiAccount" :size="24" />
-                </div>
-                <div class="app-header__dropdown-user-details">
-                  <div class="app-header__dropdown-name">{{ user.name }}</div>
-                  <div class="app-header__dropdown-email">{{ user.email }}</div>
+          <!-- Dropdown Menu -->
+          <Transition name="dropdown">
+            <div 
+              v-if="isUserMenuOpen" 
+              class="app-header__dropdown"
+              ref="userMenuDropdown"
+            >
+              <div class="app-header__dropdown-section">
+                <div class="app-header__dropdown-user-info">
+                  <div class="app-header__dropdown-avatar">
+                    <BaseIcon :path="mdiAccount" :size="24" />
+                  </div>
+                  <div class="app-header__dropdown-user-details">
+                    <div class="app-header__dropdown-name">{{ displayName }}</div>
+                    <div class="app-header__dropdown-email">{{ user.email }}</div>
+                  </div>
                 </div>
               </div>
+
+              <div class="app-header__dropdown-divider"></div>
+
+              <div class="app-header__dropdown-section">
+                <button class="app-header__dropdown-item" @click="navigateTo('/my-plans')">
+                  <BaseIcon :path="mdiFileDocumentMultiple" :size="18" />
+                  <span>My Plans</span>
+                </button>
+                <button class="app-header__dropdown-item" @click="navigateTo('/my-tasks')">
+                  <BaseIcon :path="mdiClipboardCheck" :size="18" />
+                  <span>My Tasks</span>
+                </button>
+                <button class="app-header__dropdown-item" @click="navigateTo('/settings')">
+                  <BaseIcon :path="mdiCog" :size="18" />
+                  <span>Settings</span>
+                </button>
+                <button class="app-header__dropdown-item" @click="navigateTo('/profile')">
+                  <BaseIcon :path="mdiAccountCircle" :size="18" />
+                  <span>Profile</span>
+                </button>
+              </div>
+
+              <div class="app-header__dropdown-divider"></div>
+
+              <div class="app-header__dropdown-section">
+                <button class="app-header__dropdown-item app-header__dropdown-item--danger" @click="handleSignOut">
+                  <BaseIcon :path="mdiLogout" :size="18" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
             </div>
+          </Transition>
+        </template>
 
-            <div class="app-header__dropdown-divider"></div>
-
-            <div class="app-header__dropdown-section">
-              <button class="app-header__dropdown-item" @click="navigateTo('/my-plans')">
-                <BaseIcon :path="mdiFileDocumentMultiple" :size="18" />
-                <span>My Plans</span>
-              </button>
-              <button class="app-header__dropdown-item" @click="navigateTo('/settings')">
-                <BaseIcon :path="mdiCog" :size="18" />
-                <span>Settings</span>
-              </button>
-              <button class="app-header__dropdown-item" @click="navigateTo('/profile')">
-                <BaseIcon :path="mdiAccountCircle" :size="18" />
-                <span>Profile</span>
-              </button>
-            </div>
-
-            <div class="app-header__dropdown-divider"></div>
-
-            <div class="app-header__dropdown-section">
-              <button class="app-header__dropdown-item app-header__dropdown-item--danger" @click="handleSignOut">
-                <BaseIcon :path="mdiLogout" :size="18" />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          </div>
-        </Transition>
+        <!-- Not Authenticated: Sign In Button -->
+        <template v-else>
+          <button class="app-header__sign-in" @click="openLoginModal">
+            <BaseIcon :path="mdiLogin" :size="18" />
+            <span>Sign In</span>
+          </button>
+        </template>
       </div>
     </div>
   </header>
@@ -98,22 +121,36 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useAuth } from '@/composables/useAuth';
+import { useAuthStore } from '@/stores/authStore';
+import { useLoginModal } from '@/composables/useLoginModal';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import { 
   mdiHeartCircle, 
   mdiHome, 
   mdiFileDocumentMultiple,
+  mdiClipboardCheck,
   mdiAccount,
   mdiChevronDown,
   mdiCog,
   mdiAccountCircle,
-  mdiLogout
+  mdiLogout,
+  mdiLogin
 } from '@mdi/js';
 
 const router = useRouter();
 const route = useRoute();
-const { user, signOut } = useAuth();
+const authStore = useAuthStore();
+const { open: openLoginModal } = useLoginModal();
+
+const user = computed(() => authStore.user);
+const isAuthenticated = computed(() => authStore.isAuthenticated);
+
+const displayName = computed(() => {
+  if (!user.value) return 'User';
+  return user.value.user_metadata?.full_name || 
+         user.value.email?.split('@')[0] || 
+         'User';
+});
 
 const isUserMenuOpen = ref(false);
 const userMenuTrigger = ref<HTMLElement | null>(null);
@@ -135,8 +172,13 @@ const navigateTo = (path: string) => {
 };
 
 const handleSignOut = async () => {
-  await signOut();
-  closeUserMenu();
+  try {
+    await authStore.signOut();
+    closeUserMenu();
+    router.push('/');
+  } catch (error) {
+    console.error('Error signing out:', error);
+  }
 };
 
 // Close dropdown when clicking outside
@@ -404,6 +446,29 @@ onUnmounted(() => {
   background-color: #fef2f2;
 }
 
+/* Sign In Button */
+.app-header__sign-in {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  font-family: var(--font-family-base);
+}
+
+.app-header__sign-in:hover {
+  background-color: var(--color-primary-dark, #6366f1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
 /* Dropdown Transition */
 .dropdown-enter-active,
 .dropdown-leave-active {
@@ -441,6 +506,10 @@ onUnmounted(() => {
 
   .app-header__user-trigger {
     padding: var(--spacing-xs);
+  }
+
+  .app-header__sign-in span {
+    display: none;
   }
 
   .app-header__dropdown {

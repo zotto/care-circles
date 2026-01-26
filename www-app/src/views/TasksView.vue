@@ -70,6 +70,19 @@
         </Transition>
       </div>
     </div>
+
+    <!-- Delete Confirmation Dialog -->
+    <ConfirmDialog
+      ref="deleteDialog"
+      title="Remove Task?"
+      message="Are you sure you want to remove this task from the plan?"
+      confirm-text="Remove Task"
+      cancel-text="Keep Task"
+      variant="danger"
+      :icon="mdiAlertCircle"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+    />
   </div>
 </template>
 
@@ -79,12 +92,16 @@ import { useRouter } from 'vue-router';
 import TaskReviewPanel from '@/components/organisms/TaskReviewPanel.vue';
 import BaseCard from '@/components/atoms/BaseCard.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
+import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import { useCareStore } from '@/stores/careStore';
 import type { CareTask } from '@/types';
+import { mdiAlertCircle } from '@mdi/js';
 
 const router = useRouter();
 const careStore = useCareStore();
 const showApprovalSuccess = ref(false);
+const deleteDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
+const pendingDeleteTaskId = ref<string | null>(null);
 
 onMounted(() => {
   // If there's an active job, refresh its status
@@ -107,15 +124,33 @@ const handleUpdateTask = (taskId: string, updates: Partial<CareTask>) => {
 };
 
 const handleDeleteTask = (taskId: string) => {
-  if (confirm('Are you sure you want to remove this task?')) {
-    careStore.deleteTask(taskId);
-  }
+  pendingDeleteTaskId.value = taskId;
+  deleteDialog.value?.open();
 };
 
-const handleApprove = () => {
-  // TODO: Implement approval logic with backend
-  // For now, just show success modal
-  showApprovalSuccess.value = true;
+function confirmDelete() {
+  if (pendingDeleteTaskId.value) {
+    careStore.deleteTask(pendingDeleteTaskId.value);
+    pendingDeleteTaskId.value = null;
+  }
+  deleteDialog.value?.close();
+}
+
+function cancelDelete() {
+  pendingDeleteTaskId.value = null;
+}
+
+const handleApprove = async (planName: string) => {
+  console.log('TasksView: Received approve with plan name:', planName);
+  try {
+    const shareUrl = await careStore.approvePlan(planName);
+    if (shareUrl) {
+      showApprovalSuccess.value = true;
+    }
+  } catch (err) {
+    // Error is already handled in the store
+    console.error('Failed to approve plan:', err);
+  }
 };
 
 const handleCancel = () => {

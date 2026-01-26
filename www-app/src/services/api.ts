@@ -12,6 +12,8 @@ import type {
   CareRequestResponse,
   JobStatusResponse,
 } from '@/types';
+import * as storage from '@/services/storage';
+import * as authService from '@/services/auth';
 
 /**
  * API Client Configuration
@@ -30,12 +32,32 @@ class ApiClient {
 
     // Request interceptor
     this.client.interceptors.request.use(
-      (config) => {
-        // Add auth headers when available
-        // const token = localStorage.getItem('auth_token');
-        // if (token) {
-        //   config.headers.Authorization = `Bearer ${token}`;
-        // }
+      async (config) => {
+        // Get fresh token from Supabase session (handles token refresh automatically)
+        // Fallback to localStorage if session is not available
+        let token: string | null = null;
+        try {
+          const session = await authService.getCurrentSession();
+          token = session?.access_token ?? null;
+          
+          // If we got a fresh token, update localStorage
+          if (token) {
+            storage.saveAccessToken(token);
+          }
+        } catch (error) {
+          // If getting session fails, try localStorage as fallback
+          console.warn('Failed to get session, using localStorage token:', error);
+          token = storage.getAccessToken();
+        }
+        
+        // If still no token, try localStorage
+        if (!token) {
+          token = storage.getAccessToken();
+        }
+        
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
         return config;
       },
       (error) => Promise.reject(error)
@@ -45,6 +67,17 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error: AxiosError) => {
+        // Handle 401 - redirect to login
+        if (error.response?.status === 401) {
+          // Clear auth data
+          storage.clearAuthStorage();
+          
+          // Redirect to login if not already there
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+        }
+        
         return Promise.reject(this.handleError(error));
       }
     );
@@ -158,6 +191,100 @@ class ApiClient {
    */
   async listJobs(): Promise<{ total: number; jobs: Job[] }> {
     const response = await this.client.get('/jobs');
+    return response.data;
+  }
+
+  /**
+   * Generic GET request
+   */
+  async get<T = any>(url: string, config?: any): Promise<{ data: T }> {
+    const response = await this.client.get<T>(url, config);
+    return { data: response.data };
+  }
+
+  /**
+   * Generic POST request
+   */
+  async post<T = any>(url: string, data?: any, config?: any): Promise<{ data: T }> {
+    const response = await this.client.post<T>(url, data, config);
+    return { data: response.data };
+  }
+
+  /**
+   * Generic PATCH request
+   */
+  async patch<T = any>(url: string, data?: any, config?: any): Promise<{ data: T }> {
+    const response = await this.client.patch<T>(url, data, config);
+    return { data: response.data };
+  }
+
+  /**
+   * Generic DELETE request
+   */
+  async delete<T = any>(url: string, config?: any): Promise<{ data: T }> {
+    const response = await this.client.delete<T>(url, config);
+    return { data: response.data };
+  }
+
+  /**
+   * Create a care plan from care request (for approval flow)
+   */
+  async createCarePlan(careRequestId: string, summary: string, tasks: any[]): Promise<{ plan_id: string; care_plan: any }> {
+    const response = await this.client.post('/care-plans', {
+      care_request_id: careRequestId,
+      summary,
+      tasks,
+    });
+    return response.data;
+  }
+
+  /**
+   * Approve a care plan
+   */
+  async approveCarePlan(planId: string): Promise<any> {
+    const response = await this.client.post(`/care-plans/${planId}/approve`);
+    return response.data;
+  }
+
+  /**
+   * Generate a share link for a care plan
+   */
+  async generateShareLink(planId: string): Promise<{ share_token: string; share_url: string }> {
+    const response = await this.client.post(`/care-plans/${planId}/share`);
+    return response.data;
+  }
+
+  /**
+   * List all care plans for the current user
+   */
+  async listCarePlans(): Promise<any[]> {
+    const response = await this.client.get('/care-plans');
+    return response.data;
+  }
+
+  /**
+   * Get a specific care plan with tasks
+   */
+  async getCarePlan(planId: string): Promise<any> {
+    const response = await this.client.get(`/care-plans/${planId}`);
+    return response.data;
+  }
+
+  /**
+   * Get tasks for a specific care plan
+   */
+  async getCarePlanTasks(planId: string): Promise<any[]> {
+    const response = await this.client.get(`/care-plans/${planId}/tasks`);
+    return response.data;
+  }
+
+  /**
+   * Update care plan summary/name
+   */
+  async updateCarePlan(planId: string, summary: string): Promise<any> {
+    const response = await this.client.patch(`/care-plans/${planId}`, {
+      summary,
+    });
     return response.data;
   }
 }

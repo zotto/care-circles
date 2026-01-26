@@ -1,5 +1,5 @@
 <template>
-  <div class="care-workflow">
+  <div class="care-workflow" :class="{ 'care-workflow--focused': !requestSubmitted }">
     <!-- Background Elements -->
     <div class="care-workflow__bg-decoration">
       <div class="floating-circle floating-circle--1"></div>
@@ -7,32 +7,31 @@
     </div>
 
     <div class="container">
-      <div class="care-workflow__content">
-        <!-- Header -->
-        <header class="care-workflow__header">
-          <h1 class="care-workflow__title">Care Coordination</h1>
-          <p class="care-workflow__subtitle">
-            Intelligent assistance for organizing care support
-          </p>
-        </header>
+      <div
+        class="care-workflow__content"
+        :class="{ 'care-workflow__content--focused': !requestSubmitted }"
+      >
 
         <!-- Step 1: Care Request Form -->
-        <section v-if="!requestSubmitted" class="care-workflow__section">
+        <section
+          v-if="!requestSubmitted"
+          class="care-workflow__section care-workflow__section--focused"
+        >
           <CareRequestForm @submit="handleSubmit" />
         </section>
 
         <!-- Step 2: Processing Status -->
         <Transition name="section">
-          <section v-if="showAIAnalysisSection" class="care-workflow__section">
-            <div class="section-header">
+          <section v-if="showAIAnalysisSection" class="care-workflow__section care-workflow__section--centered">
+            <div class="section-header section-header--centered">
               <div class="section-badge" :class="{ 'is-complete': isJobComplete }">
                 <span v-if="!isJobComplete" class="section-badge__spinner"></span>
                 <span v-else class="section-badge__check">✓</span>
               </div>
               <div class="section-header__content">
-                <h2 class="section-header__title">AI Analysis</h2>
+                <h2 class="section-header__title">Analyzing Your Request</h2>
                 <p class="section-header__description">
-                  Our intelligent system is analyzing your needs and creating a personalized care plan
+                  Creating your personalized care plan
                 </p>
               </div>
             </div>
@@ -41,7 +40,7 @@
               <div class="status-card__content">
                 <div class="status-progress">
                   <div 
-                    v-for="(step, index) in processingSteps" 
+                    v-for="(step, index) in PROCESSING_STEPS" 
                     :key="index"
                     class="status-progress__step"
                     :class="{
@@ -68,14 +67,14 @@
         <!-- Step 3: Review & Approve Tasks -->
         <Transition name="section">
           <section v-if="showReviewSection" class="care-workflow__section">
-            <div class="section-header">
+            <div class="section-header section-header--centered">
               <div class="section-badge is-complete">
                 <span class="section-badge__check">✓</span>
               </div>
               <div class="section-header__content">
-                <h2 class="section-header__title">Review Care Plan</h2>
+                <h2 class="section-header__title">Your Care Plan</h2>
                 <p class="section-header__description">
-                  Review, edit, and approve the tasks below. All fields are editable.
+                  Review and customize your personalized tasks
                 </p>
               </div>
             </div>
@@ -120,7 +119,7 @@
                               @click.stop
                             >
                               <button
-                                v-for="priority in (['low', 'medium', 'high'] as const)"
+                                v-for="priority in TASK_PRIORITIES"
                                 :key="priority"
                                 type="button"
                                 class="priority-dropdown__item"
@@ -323,6 +322,7 @@ import BaseInput from '@/components/atoms/BaseInput.vue';
 import BaseTextArea from '@/components/atoms/BaseTextArea.vue';
 import { useCareStore } from '@/stores/careStore';
 import type { CareRequest, CareTask } from '@/types';
+import { PROCESSING_STEPS, TASK_PRIORITIES } from '@/constants';
 
 // Icons
 import { 
@@ -342,34 +342,6 @@ const showDeleteModal = ref(false);
 const showResetModal = ref(false);
 const taskToDelete = ref<string | null>(null);
 
-const processingSteps = [
-  {
-    agent: 'A1',
-    title: 'Understanding Needs',
-    description: 'Analyzing your situation and identifying care requirements'
-  },
-  {
-    agent: 'A2',
-    title: 'Generating Tasks',
-    description: 'Creating personalized, actionable care tasks'
-  },
-  {
-    agent: 'A3',
-    title: 'Quality Review',
-    description: 'Ensuring safety and appropriateness'
-  },
-  {
-    agent: 'A4',
-    title: 'Optimization',
-    description: 'Refining and organizing your care plan'
-  },
-  {
-    agent: 'A5',
-    title: 'Final Assembly',
-    description: 'Preparing your care plan for review'
-  }
-];
-
 const currentStepIndex = computed(() => {
   if (!careStore.activeJob) return -1;
   
@@ -377,7 +349,7 @@ const currentStepIndex = computed(() => {
   if (!currentAgent) return -1;
   
   // Find the index based on current agent
-  const index = processingSteps.findIndex(step => step.agent === currentAgent);
+  const index = PROCESSING_STEPS.findIndex(step => step.agent === currentAgent);
   return index;
 });
 
@@ -403,12 +375,20 @@ const getAgentStatus = (agent: string): string => {
 // Auto-scroll to latest section when status changes
 watch(() => careStore.activeJob?.status, (newStatus) => {
   if (newStatus === 'completed') {
+    // Keep at top when completed
     setTimeout(() => {
-      const tasksSection = document.querySelector('.tasks-container');
-      if (tasksSection) {
-        tasksSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 500);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 300);
+  }
+});
+
+// Watch requestSubmitted and scroll when transitioning
+watch(requestSubmitted, (submitted) => {
+  // Keep at top when transitioning
+  if (submitted) {
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
   }
 });
 
@@ -440,10 +420,10 @@ const handleSubmit = async (data: Omit<CareRequest, 'id' | 'care_circle_id' | 's
     
     requestSubmitted.value = true;
     
-    // Smooth scroll to status section
+    // Keep at top
     setTimeout(() => {
-      window.scrollTo({ top: 400, behavior: 'smooth' });
-    }, 300);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
   } catch (error) {
     console.error('Failed to submit care request:', error);
     alert('Failed to submit care request. Please try again.');
@@ -532,10 +512,38 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
 <style scoped>
 .care-workflow {
-  min-height: 100vh;
+  min-height: 100svh;
   padding: var(--spacing-2xl) 0 var(--spacing-3xl);
   position: relative;
+  box-sizing: border-box;
   background: linear-gradient(to bottom, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
+}
+
+.care-workflow--focused {
+  padding: var(--spacing-lg) 0;
+}
+
+.care-workflow::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(600px 400px at 15% -10%, rgba(79, 70, 229, 0.08), transparent 60%),
+    radial-gradient(500px 360px at 90% 10%, rgba(20, 184, 166, 0.08), transparent 55%),
+    radial-gradient(520px 360px at 50% 100%, rgba(236, 72, 153, 0.06), transparent 65%);
+}
+
+.care-workflow::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+  background-image: radial-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 0);
+  background-size: 28px 28px;
 }
 
 /* Background Decoration */
@@ -594,25 +602,9 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   gap: var(--spacing-2xl);
 }
 
-/* Header */
-.care-workflow__header {
-  text-align: center;
-  padding: 0 var(--spacing-lg) var(--spacing-xl);
-}
-
-.care-workflow__title {
-  font-size: clamp(2rem, 5vw, 2.75rem);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-sm);
-  letter-spacing: -0.02em;
-}
-
-.care-workflow__subtitle {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
-  margin: 0;
-  font-weight: var(--font-weight-normal);
+.care-workflow__content--focused {
+  min-height: calc(100svh - var(--spacing-2xl));
+  justify-content: center;
 }
 
 /* Section */
@@ -622,11 +614,31 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   gap: var(--spacing-lg);
 }
 
+.care-workflow__section--focused {
+  align-items: center;
+  width: 100%;
+}
+
+.care-workflow__section--centered {
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
 .section-header {
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-lg);
   padding: 0 var(--spacing-md);
+}
+
+.section-header--centered {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-md);
+  padding: 0;
 }
 
 .section-badge {
@@ -700,19 +712,22 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   border: none;
   background: var(--color-bg-primary);
   box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
 .status-card__content {
   padding: var(--spacing-xl);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
 .status-progress {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 
 .status-progress__step {
@@ -734,8 +749,8 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
 .status-progress__icon {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-full);
   background: var(--color-bg-tertiary);
   border: 2px solid var(--color-border);
@@ -743,6 +758,7 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   align-items: center;
   justify-content: center;
   font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   transition: all var(--transition-base);
 }
@@ -775,17 +791,17 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 }
 
 .status-progress__title {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-xs);
+  margin: 0 0 2px;
 }
 
 .status-progress__description {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .status-card__meta {
@@ -1176,15 +1192,23 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 /* Responsive */
 @media (max-width: 768px) {
   .care-workflow {
-    padding: var(--spacing-xl) 0 var(--spacing-2xl);
+    padding: var(--spacing-lg) 0 var(--spacing-xl);
   }
 
-  .care-workflow__header {
-    padding: 0 var(--spacing-md) var(--spacing-lg);
+  .care-workflow--focused {
+    padding: var(--spacing-md) 0;
   }
 
   .section-header {
     gap: var(--spacing-md);
+  }
+
+  .section-header--centered {
+    gap: var(--spacing-sm);
+  }
+
+  .care-workflow__content {
+    gap: var(--spacing-xl);
   }
 
   .section-badge {
@@ -1200,7 +1224,6 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
     padding: 0 var(--spacing-sm);
   }
 
-
   .tasks-actions__buttons {
     flex-direction: column;
   }
@@ -1209,6 +1232,25 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-md);
+  }
+
+  .status-card__content {
+    padding: var(--spacing-md);
+  }
+
+  .status-progress {
+    gap: var(--spacing-sm);
+  }
+
+  .status-progress__step {
+    padding: var(--spacing-sm);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-circle {
+    animation: none;
+    opacity: 0.2;
   }
 }
 </style>

@@ -27,6 +27,7 @@ export const SCROLL = {
   REVEAL_THRESHOLD: 0.1, // 10% visible
   PARALLAX_SPEED: 0.5,
   SMOOTH_OFFSET: 100,
+  STATUS_SCROLL_TOP: 400,
 } as const;
 
 // Layout Breakpoints (pixels)
@@ -89,6 +90,35 @@ export const TASK_CATEGORIES = [
 
 // Care Task Priorities
 export const TASK_PRIORITIES = ['low', 'medium', 'high'] as const;
+
+// AI Processing Steps
+export const PROCESSING_STEPS = [
+  {
+    agent: 'A1',
+    title: 'Understanding Needs',
+    description: 'Analyzing your situation and identifying care requirements',
+  },
+  {
+    agent: 'A2',
+    title: 'Generating Tasks',
+    description: 'Creating personalized, actionable care tasks',
+  },
+  {
+    agent: 'A3',
+    title: 'Quality Review',
+    description: 'Ensuring safety and appropriateness',
+  },
+  {
+    agent: 'A4',
+    title: 'Optimization',
+    description: 'Refining and organizing your care plan',
+  },
+  {
+    agent: 'A5',
+    title: 'Final Assembly',
+    description: 'Preparing your care plan for review',
+  },
+] as const;
 
 // Status Values
 export const REQUEST_STATUS = ['submitted', 'processing', 'completed'] as const;

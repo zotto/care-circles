@@ -290,7 +290,8 @@ const handleSubmit = async () => {
 
 @media (max-width: 640px) {
   .care-request-form__content {
-    padding: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    gap: var(--spacing-md);
   }
 
   .care-request-form__title {
@@ -299,6 +300,10 @@ const handleSubmit = async () => {
 
   .care-request-form__description {
     font-size: var(--font-size-xs);
+  }
+
+  .care-request-form__fields {
+    gap: var(--spacing-sm);
   }
 }
 </style>

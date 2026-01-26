@@ -6,23 +6,36 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'workflow',
+      name: 'home',
       component: UnifiedWorkflowView,
       meta: {
         title: 'Care Coordination - Care Circles',
       },
     },
-    // Keep old routes for reference/future use
-    // {
-    //   path: '/plan',
-    //   name: 'plan',
-    //   component: () => import('@/views/PlanView.vue'),
-    // },
-    // {
-    //   path: '/tasks',
-    //   name: 'tasks',
-    //   component: () => import('@/views/TasksView.vue'),
-    // },
+    {
+      path: '/my-plans',
+      name: 'my-plans',
+      component: () => import('@/views/PlanView.vue'),
+      meta: {
+        title: 'My Plans - Care Circles',
+      },
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('@/views/PlanView.vue'), // Placeholder
+      meta: {
+        title: 'Settings - Care Circles',
+      },
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/views/PlanView.vue'), // Placeholder
+      meta: {
+        title: 'Profile - Care Circles',
+      },
+    },
   ],
   scrollBehavior(_to, _from, savedPosition) {
     if (savedPosition) {

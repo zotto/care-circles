@@ -27,7 +27,7 @@
                   class="form-input"
                   placeholder="you@example.com"
                   required
-                  :disabled="isLoading"
+                  :disabled="authStore.isLoading"
                   autofocus
                 />
               </div>

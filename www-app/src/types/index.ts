@@ -45,7 +45,7 @@ export interface CareTask {
   description: string;
   category: string;
   priority: 'low' | 'medium' | 'high';
-  status: 'draft' | 'active' | 'completed';
+  status: 'draft' | 'active' | 'available' | 'claimed' | 'completed';
   created_at: string;
 }
 

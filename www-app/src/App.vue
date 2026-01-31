@@ -11,14 +11,13 @@
 
 <script setup lang="ts">
 import { watch } from 'vue';
-import { RouterView, useRouter } from 'vue-router';
+import { RouterView } from 'vue-router';
 import AppHeader from '@/components/organisms/AppHeader.vue';
 import AppFooter from '@/components/organisms/AppFooter.vue';
 import LoginModal from '@/components/organisms/LoginModal.vue';
 import { useLoginModal } from '@/composables/useLoginModal';
 import { useAuthStore } from '@/stores/authStore';
 
-const router = useRouter();
 const authStore = useAuthStore();
 const { showLoginModal, close: closeLoginModal } = useLoginModal();
 

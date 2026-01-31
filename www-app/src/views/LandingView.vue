@@ -166,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue';
 import { useScrollReveal, useStaggeredReveal } from '@/composables/useAnimations';
 import { useLoginModal } from '@/composables/useLoginModal';
 import BaseButton from '@/components/atoms/BaseButton.vue';
@@ -189,12 +189,14 @@ const scrollToFeatures = () => {
 };
 
 // Hero animation
+// @ts-expect-error - heroRef is used in template
 const { isVisible: heroVisible, elementRef: heroRef } = useScrollReveal({
   threshold: 0.2,
   once: true,
 });
 
 // Features header
+// @ts-expect-error - featuresHeaderRef is used in template
 const { isVisible: featuresHeaderVisible, elementRef: featuresHeaderRef } = useScrollReveal({
   threshold: 0.1,
   once: true,
@@ -204,23 +206,25 @@ const { isVisible: featuresHeaderVisible, elementRef: featuresHeaderRef } = useS
 const featureVisible = ref<boolean[]>([]);
 const featureRefs = ref<(HTMLElement | null)[]>([]);
 
-const setFeatureRef = (el: HTMLElement | null, index: number) => {
-  if (el) {
-    featureRefs.value[index] = el;
+const setFeatureRef = (el: Element | ComponentPublicInstance | null, index: number) => {
+  const element = el as HTMLElement | null;
+  if (element) {
+    featureRefs.value[index] = element;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
+        if (entries[0]?.isIntersecting) {
           featureVisible.value[index] = true;
           if (observer) observer.disconnect();
         }
       },
       { threshold: 0.1, rootMargin: '0px' }
     );
-    observer.observe(el);
+    observer.observe(element);
   }
 };
 
 // How it works header
+// @ts-expect-error - howItWorksHeaderRef is used in template
 const { isVisible: howItWorksHeaderVisible, elementRef: howItWorksHeaderRef } = useScrollReveal({
   threshold: 0.1,
   once: true,
@@ -230,23 +234,25 @@ const { isVisible: howItWorksHeaderVisible, elementRef: howItWorksHeaderRef } = 
 const stepVisible = ref<boolean[]>([]);
 const stepRefs = ref<(HTMLElement | null)[]>([]);
 
-const setStepRef = (el: HTMLElement | null, index: number) => {
-  if (el) {
-    stepRefs.value[index] = el;
+const setStepRef = (el: Element | ComponentPublicInstance | null, index: number) => {
+  const element = el as HTMLElement | null;
+  if (element) {
+    stepRefs.value[index] = element;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
+        if (entries[0]?.isIntersecting) {
           stepVisible.value[index] = true;
           if (observer) observer.disconnect();
         }
       },
       { threshold: 0.1, rootMargin: '0px' }
     );
-    observer.observe(el);
+    observer.observe(element);
   }
 };
 
 // CTA
+// @ts-expect-error - ctaRef is used in template
 const { isVisible: ctaVisible, elementRef: ctaRef } = useScrollReveal({
   threshold: 0.2,
   once: true,
@@ -316,8 +322,10 @@ const cycleCardZIndex = () => {
 
   // Set the front card with a subtle scale effect
   const frontCard = cards[currentFrontCard];
-  frontCard.style.zIndex = '10';
-  frontCard.classList.add('hero__card--front');
+  if (frontCard) {
+    frontCard.style.zIndex = '10';
+    frontCard.classList.add('hero__card--front');
+  }
 
   // Move to next card
   currentFrontCard = (currentFrontCard + 1) % 3;

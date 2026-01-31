@@ -254,6 +254,27 @@ function goToLogin() {
     query: { redirect: route.fullPath },
   });
 }
+
+async function copyPlanLink() {
+  try {
+    const shareToken = route.params.shareToken as string;
+    const baseUrl = window.location.origin;
+    const shareUrl = `${baseUrl}/shared/${shareToken}`;
+
+    // Copy to clipboard
+    await navigator.clipboard.writeText(shareUrl);
+    
+    // Show visual feedback
+    isLinkCopied.value = true;
+    setTimeout(() => {
+      isLinkCopied.value = false;
+    }, 2000);
+  } catch (err: any) {
+    // Show error modal
+    errorMessage.value = err.message || 'Failed to copy link. Please try again.';
+    showErrorModal.value = true;
+  }
+}
 </script>
 
 <style scoped>

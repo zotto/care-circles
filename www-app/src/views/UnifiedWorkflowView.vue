@@ -468,24 +468,24 @@ const handleClickOutside = () => {
   activePriorityDropdown.value = null;
 };
 
-const handleSubmit = async (data: Omit<CareRequest, 'id' | 'care_circle_id' | 'status' | 'created_at'>) => {
-  try {
-    await careStore.createCareRequest(
-      data.narrative,
-      data.constraints,
-      data.boundaries
-    );
-    
-    requestSubmitted.value = true;
-    
-    // Keep at top
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, 100);
-  } catch (error: any) {
-    console.error('Failed to submit care request:', error);
-    showError('Failed to Submit Request', error.message || 'Failed to submit care request. Please try again.');
-  }
+const handleSubmit = (data: Omit<CareRequest, 'id' | 'care_circle_id' | 'status' | 'created_at'>) => {
+  // Show "Analyzing Your Request" immediately so the user isn't left waiting on a blank/frozen UI
+  requestSubmitted.value = true;
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 100);
+
+  // Fire the request in the background; errors are handled below
+  careStore
+    .createCareRequest(data.narrative, data.constraints, data.boundaries)
+    .catch((error: any) => {
+      console.error('Failed to submit care request:', error);
+      requestSubmitted.value = false;
+      showError(
+        'Failed to Submit Request',
+        error?.message || 'Failed to submit care request. Please try again.'
+      );
+    });
 };
 
 const handleTaskUpdate = (taskId: string, updates: Partial<CareTask>) => {

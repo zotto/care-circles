@@ -20,12 +20,16 @@
               @click="copyPlanLink"
               class="copy-link-button"
               :class="{ 'is-copied': isLinkCopied }"
-              :title="isLinkCopied ? 'Link copied!' : 'Copy plan link'"
+              :aria-label="isLinkCopied ? 'Link copied' : 'Copy share link to clipboard'"
             >
               <BaseIcon 
                 :path="isLinkCopied ? mdiCheck : mdiContentCopy" 
                 :size="20" 
+                class="copy-link-button__icon"
               />
+              <span class="copy-link-button__label">
+                {{ isLinkCopied ? 'Copied!' : 'Copy share link' }}
+              </span>
             </button>
           </div>
         </div>
@@ -51,24 +55,32 @@
               class="task-card"
               :class="{ 'task-claimed': task.status === 'claimed' || task.status === 'completed' }"
             >
-              <div class="task-header">
-                <span class="task-priority" :class="`priority-${task.priority}`">
-                  {{ task.priority.toUpperCase() }}
-                </span>
-                <span class="task-status" :class="`status-${task.status}`">
-                  {{ task.status }}
-                </span>
-              </div>
+              <button
+                type="button"
+                class="task-card__body"
+                @click="openTaskDetail(task)"
+              >
+                <div class="task-header">
+                  <span class="task-priority" :class="`priority-${task.priority}`">
+                    {{ task.priority.toUpperCase() }}
+                  </span>
+                  <span class="task-status" :class="`status-${task.status}`">
+                    {{ task.status }}
+                  </span>
+                </div>
 
-              <h3 class="task-title">{{ task.title }}</h3>
-              <p class="task-description">{{ task.description }}</p>
+                <h3 class="task-title">{{ task.title }}</h3>
+                <p class="task-description">{{ task.description }}</p>
 
-              <div class="task-meta">
-                <span class="task-category">{{ task.category }}</span>
-              </div>
+                <div class="task-card__spacer" aria-hidden="true"></div>
+                <div class="task-card__view-detail" aria-label="View full details">
+                  <span class="task-card__view-detail-text">More</span>
+                  <BaseIcon :path="mdiChevronRight" :size="24" />
+                </div>
+              </button>
 
               <div v-if="isAuthenticated && task.status === 'available'" class="task-actions">
-                <button @click="handleClaimTask(task.id)" class="claim-button">
+                <button @click.stop="handleClaimTask(task.id)" class="claim-button">
                   Claim Task
                 </button>
               </div>
@@ -129,6 +141,38 @@
       </div>
     </Transition>
 
+    <!-- Task detail modal -->
+    <Transition name="modal">
+      <div v-if="selectedTask" class="modal-overlay" @click="closeTaskDetail">
+        <div class="task-detail-modal" @click.stop role="dialog" aria-modal="true" :aria-labelledby="'task-detail-title-' + selectedTask.id">
+          <div class="task-detail-modal__header">
+            <h2 :id="'task-detail-title-' + selectedTask.id" class="task-detail-modal__title">{{ selectedTask.title }}</h2>
+            <button type="button" class="task-detail-modal__close" @click="closeTaskDetail" aria-label="Close">×</button>
+          </div>
+          <div class="task-detail-modal__badges">
+            <span class="task-priority" :class="`priority-${selectedTask.priority}`">
+              {{ selectedTask.priority.toUpperCase() }}
+            </span>
+            <span class="task-status" :class="`status-${selectedTask.status}`">
+              {{ selectedTask.status }}
+            </span>
+            <span class="task-category">{{ selectedTask.category }}</span>
+          </div>
+          <div class="task-detail-modal__description">
+            <p>{{ selectedTask.description }}</p>
+          </div>
+          <div v-if="isAuthenticated && selectedTask.status === 'available'" class="task-detail-modal__actions">
+            <button @click="handleClaimTaskFromDetail(selectedTask.id)" class="claim-button">
+              Claim Task
+            </button>
+          </div>
+          <div v-else-if="selectedTask.status === 'claimed' || selectedTask.status === 'completed'" class="task-detail-modal__claimed">
+            {{ selectedTask.status === 'completed' ? 'Completed' : 'Already claimed' }}
+          </div>
+        </div>
+      </div>
+    </Transition>
+
     <!-- Error Modal -->
     <Transition name="modal">
       <div v-if="showErrorModal" class="modal-overlay" @click="closeErrorModal">
@@ -177,7 +221,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useTaskStore } from '@/stores/taskStore';
 import { api } from '@/services/api';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
-import { mdiContentCopy, mdiCheck } from '@mdi/js';
+import { mdiContentCopy, mdiCheck, mdiChevronRight } from '@mdi/js';
 
 const route = useRoute();
 const router = useRouter();
@@ -191,6 +235,7 @@ const showSuccessModal = ref(false);
 const showErrorModal = ref(false);
 const errorMessage = ref('');
 const isLinkCopied = ref(false);
+const selectedTask = ref<any>(null);
 
 const isAuthenticated = computed(() => authStore.isAuthenticated);
 
@@ -237,6 +282,19 @@ async function handleClaimTask(taskId: string) {
 
 function handleCloseModal() {
   showSuccessModal.value = false;
+}
+
+function openTaskDetail(task: any) {
+  selectedTask.value = task;
+}
+
+function closeTaskDetail() {
+  selectedTask.value = null;
+}
+
+async function handleClaimTaskFromDetail(taskId: string) {
+  await handleClaimTask(taskId);
+  closeTaskDetail();
 }
 
 function closeErrorModal() {
@@ -348,16 +406,18 @@ async function copyPlanLink() {
 }
 
 .copy-link-button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  min-height: 40px;
   background: white;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
   transition: all var(--transition-base);
   flex-shrink: 0;
@@ -375,6 +435,14 @@ async function copyPlanLink() {
   background: var(--color-success-light);
   border-color: var(--color-success);
   color: var(--color-success);
+}
+
+.copy-link-button__icon {
+  flex-shrink: 0;
+}
+
+.copy-link-button__label {
+  white-space: nowrap;
 }
 
 .plan-summary {
@@ -428,12 +496,15 @@ async function copyPlanLink() {
 }
 
 .task-card {
+  display: flex;
+  flex-direction: column;
   background: white;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);
+  min-height: 0;
 }
 
 .task-card:hover {
@@ -444,10 +515,27 @@ async function copyPlanLink() {
   opacity: 0.7;
 }
 
+.task-card__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
 .task-header {
   display: flex;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
+  flex-shrink: 0;
 }
 
 .task-priority,
@@ -499,12 +587,39 @@ async function copyPlanLink() {
 .task-description {
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin: 0 0 var(--spacing-md);
+  line-height: 1.5;
+  margin: 0 0 var(--spacing-sm);
+  text-align: justify;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.task-meta {
-  margin-bottom: var(--spacing-md);
+.task-card__spacer {
+  flex: 1;
+  min-height: var(--spacing-md);
+}
+
+.task-card__view-detail {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  transition: color var(--transition-base), transform var(--transition-base);
+  flex-shrink: 0;
+}
+
+.task-card__view-detail-text {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.task-card__body:hover .task-card__view-detail {
+  color: var(--color-primary);
+  transform: translateX(2px);
 }
 
 .task-category {
@@ -517,7 +632,9 @@ async function copyPlanLink() {
 }
 
 .task-actions {
-  margin-top: var(--spacing-lg);
+  margin-top: auto;
+  padding-top: var(--spacing-lg);
+  flex-shrink: 0;
 }
 
 .claim-button {
@@ -537,14 +654,100 @@ async function copyPlanLink() {
 }
 
 .task-claimed-info {
-  margin-top: var(--spacing-lg);
-  padding: var(--spacing-sm);
+  margin-top: auto;
+  padding: var(--spacing-lg) var(--spacing-sm) var(--spacing-sm);
   background: var(--color-bg-secondary);
   border-radius: var(--radius-sm);
   text-align: center;
+  flex-shrink: 0;
 }
 
 .claimed-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Task detail modal */
+.task-detail-modal {
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2xl);
+  padding: var(--spacing-2xl);
+}
+
+.task-detail-modal__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.task-detail-modal__title {
+  flex: 1;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.task-detail-modal__close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  font-size: 24px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.task-detail-modal__close:hover {
+  background: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.task-detail-modal__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.task-detail-modal__badges .task-priority,
+.task-detail-modal__badges .task-status,
+.task-detail-modal__badges .task-category {
+  margin: 0;
+}
+
+.task-detail-modal__description {
+  margin-bottom: var(--spacing-xl);
+}
+
+.task-detail-modal__description p {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  text-align: justify;
+}
+
+.task-detail-modal__actions,
+.task-detail-modal__claimed {
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.task-detail-modal__claimed {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-medium);
@@ -689,18 +892,22 @@ async function copyPlanLink() {
 .modal-enter-active .success-modal,
 .modal-leave-active .success-modal,
 .modal-enter-active .error-modal,
-.modal-leave-active .error-modal {
+.modal-leave-active .error-modal,
+.modal-enter-active .task-detail-modal,
+.modal-leave-active .task-detail-modal {
   transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease;
 }
 
 .modal-enter-from .success-modal,
-.modal-enter-from .error-modal {
+.modal-enter-from .error-modal,
+.modal-enter-from .task-detail-modal {
   transform: scale(0.8);
   opacity: 0;
 }
 
 .modal-leave-to .success-modal,
-.modal-leave-to .error-modal {
+.modal-leave-to .error-modal,
+.modal-leave-to .task-detail-modal {
   transform: scale(0.8);
   opacity: 0;
 }

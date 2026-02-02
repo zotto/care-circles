@@ -152,7 +152,6 @@ RISKS:
 ASSUMPTIONS:
 {needs_map.assumptions}
 
-Care Circle ID: {care_request.care_circle_id}
 Care Request ID: {care_request.id}
 """
         
@@ -410,7 +409,6 @@ RISKS:
 ASSUMPTIONS:
 {needs_map.assumptions}
 
-Care Circle ID: {care_request.care_circle_id}
 Care Request ID: {care_request.id}
 """
         
@@ -689,7 +687,6 @@ Create a comprehensive review packet for the organizer.
                 
                 task = CareTask(
                     id=f"task_{uuid4().hex[:16]}",
-                    care_circle_id=care_request.care_circle_id,
                     care_request_id=care_request.id,
                     title=task_data.get('title', 'Untitled Task'),
                     description=task_data.get('description', ''),
@@ -764,7 +761,6 @@ Create a comprehensive review packet for the organizer.
                 
                 task = CareTask(
                     id=task_id,
-                    care_circle_id=care_request.care_circle_id,
                     care_request_id=care_request.id,
                     title=title,
                     description=task_data.get('description', ''),
@@ -839,7 +835,6 @@ Create a comprehensive review packet for the organizer.
                 
                 task = CareTask(
                     id=task_id,
-                    care_circle_id=care_request.care_circle_id,
                     care_request_id=care_request.id,
                     title=title,
                     description=task_data.get('description', ''),
@@ -905,7 +900,6 @@ Create a comprehensive review packet for the organizer.
                     
                     task = CareTask(
                         id=task_id,
-                        care_circle_id=existing_task.care_circle_id if existing_task else "",
                         care_request_id=care_request_id,
                         title=title,
                         description=task_data.get('description', ''),

@@ -257,7 +257,6 @@ import {
 
 interface CarePlan {
   id: string;
-  care_circle_id: string;
   care_request_id: string;
   summary: string;
   status: string;

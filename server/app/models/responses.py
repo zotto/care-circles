@@ -19,7 +19,6 @@ class CareRequestCreate(BaseModel):
     narrative: str = Field(..., description="The caregiving situation narrative")
     constraints: Optional[str] = Field(None, description="Timing and scheduling constraints")
     boundaries: Optional[str] = Field(None, description="Privacy concerns and boundaries")
-    care_circle_id: Optional[str] = Field(None, description="Optional care circle ID")
 
 
 # Response Models

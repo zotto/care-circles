@@ -158,7 +158,7 @@ const nextSteps = [
   'Preparing your care plan'
 ];
 
-const handleSubmit = async (data: Omit<CareRequest, 'id' | 'care_circle_id' | 'status' | 'created_at'>) => {
+const handleSubmit = async (data: Omit<CareRequest, 'id' | 'status' | 'created_at'>) => {
   try {
     await careStore.createCareRequest(
       data.narrative,

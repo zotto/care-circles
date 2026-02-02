@@ -99,7 +99,7 @@ interface FormData {
 }
 
 const emit = defineEmits<{
-  submit: [data: Omit<CareRequest, 'id' | 'care_circle_id' | 'status' | 'created_at'>];
+  submit: [data: Omit<CareRequest, 'id' | 'status' | 'created_at'>];
 }>();
 
 const formData = reactive<FormData>({

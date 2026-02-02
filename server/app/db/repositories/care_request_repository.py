@@ -20,27 +20,6 @@ class CareRequestRepository(BaseRepository):
     def __init__(self, db: Client):
         super().__init__(db, "care_requests")
     
-    def get_by_circle(self, circle_id: str) -> List[Dict[str, Any]]:
-        """
-        Get all care requests for a circle
-        
-        Args:
-            circle_id: Care circle ID
-            
-        Returns:
-            List[dict]: List of care requests
-        """
-        try:
-            result = self.db.table(self.table_name).select("*").eq(
-                "care_circle_id", circle_id
-            ).order("created_at", desc=True).execute()
-            
-            return result.data
-        
-        except Exception as e:
-            logger.error(f"Error getting requests by circle: {str(e)}")
-            raise
-    
     def get_by_creator(self, user_id: str) -> List[Dict[str, Any]]:
         """
         Get all care requests created by a user

@@ -20,23 +20,11 @@ from app.config.constants import (
 )
 
 
-class CareCircle(BaseModel):
-    """
-    Represents a coordination group for caregiving
-    """
-    id: str = Field(..., description="Unique identifier for the care circle")
-    name: str = Field(..., description="Name of the care circle")
-    description: str = Field(..., description="Description of the care circle")
-    created_by: str = Field(..., description="User ID of the creator")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
-
-
 class CareRequest(BaseModel):
     """
     Represents the initial caregiving narrative submitted by an organizer
     """
     id: str = Field(..., description="Unique identifier for the care request")
-    care_circle_id: str = Field(..., description="Associated care circle ID")
     narrative: str = Field(..., description="The caregiving situation narrative")
     constraints: Optional[str] = Field(None, description="Timing and scheduling constraints")
     boundaries: Optional[str] = Field(None, description="Privacy concerns and boundaries")
@@ -86,7 +74,6 @@ class CarePlan(BaseModel):
     """
     id: str = Field(..., description="Unique identifier for the care plan")
     care_request_id: str = Field(..., description="Associated care request ID")
-    care_circle_id: str = Field(..., description="Associated care circle ID")
     created_by: str = Field(..., description="User ID who created the plan")
     summary: str = Field(..., description="Executive summary of the care plan")
     status: str = Field(..., description="Plan status (draft, approved, active)")
@@ -133,7 +120,6 @@ class CareTask(BaseModel):
     """
     id: str = Field(..., description="Unique identifier for the task")
     care_plan_id: Optional[str] = Field(None, description="Associated care plan ID (null for draft tasks)")
-    care_circle_id: str = Field(..., description="Associated care circle ID")
     care_request_id: str = Field(..., description="Associated care request ID")
     title: str = Field(..., description="Short, clear task title")
     description: str = Field(..., description="Detailed task description")

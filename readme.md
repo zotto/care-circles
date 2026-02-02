@@ -54,24 +54,11 @@ This model provides responsiveness, traceability, and simplicity while preservin
 - Authenticated via Supabase Auth
 - Roles: organizer, helper (role-based behavior is enforced at the API layer)
 
-### CareCircle
-Represents a coordination group.
-
-Fields:
-- id
-- name
-- description
-- created_by
-- created_at
-
----
-
 ### CareRequest
 Represents the initial caregiving narrative.
 
 Fields:
 - id
-- care_circle_id
 - narrative
 - constraints
 - boundaries
@@ -99,7 +86,6 @@ Actionable unit of work.
 
 Fields:
 - id
-- care_circle_id
 - care_request_id
 - title
 - description

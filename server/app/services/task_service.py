@@ -11,7 +11,8 @@ from fastapi import HTTPException, status
 from supabase import Client
 from app.db.repositories.care_task_repository import CareTaskRepository
 from app.db.repositories.care_task_event_repository import CareTaskEventRepository
-from app.db.repositories.care_circle_repository import CareCircleRepository
+from app.db.repositories.care_plan_repository import CarePlanRepository
+from app.db.repositories.care_request_repository import CareRequestRepository
 from app.middleware.auth import AuthUser
 from app.config.constants import TaskStatusConstants, TaskEventType, TaskEventConstants
 
@@ -25,7 +26,8 @@ class TaskService:
         self.db = db
         self.task_repo = CareTaskRepository(db)
         self.event_repo = CareTaskEventRepository(db)
-        self.circle_repo = CareCircleRepository(db)
+        self.plan_repo = CarePlanRepository(db)
+        self.request_repo = CareRequestRepository(db)
     
     async def get_task(
         self,
@@ -54,19 +56,19 @@ class TaskService:
                     detail="Task not found"
                 )
             
-            # Check if user has access (member of circle or claimed the task)
-            has_access = (
-                self.circle_repo.is_member(task["care_circle_id"], user.user_id) or
-                task.get("claimed_by") == user.user_id
+            # Access: claimed by user, or plan creator, or care request creator
+            if task.get("claimed_by") == user.user_id:
+                return task
+            plan = self.plan_repo.get_by_id(task["care_plan_id"])
+            if plan and plan["created_by"] == user.user_id:
+                return task
+            req = self.request_repo.get_by_id(task["care_request_id"])
+            if req and req["created_by"] == user.user_id:
+                return task
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access to this task"
             )
-            
-            if not has_access:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You don't have access to this task"
-                )
-            
-            return task
         
         except HTTPException:
             raise
@@ -91,31 +93,12 @@ class TaskService:
             logger.error(f"Error getting user tasks: {str(e)}")
             raise
     
-    async def get_available_tasks(
-        self,
-        user: AuthUser,
-        circle_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    async def get_available_tasks(self, user: AuthUser) -> List[Dict[str, Any]]:
         """
-        Get available tasks user can claim
-        
-        Args:
-            user: Authenticated user
-            circle_id: Optional circle ID to filter by
-            
-        Returns:
-            List[dict]: List of available tasks
+        Get available tasks user can claim.
         """
         try:
-            tasks = self.task_repo.get_available_tasks(circle_id)
-            
-            # Filter to only tasks in circles user is a member of
-            accessible_tasks = []
-            for task in tasks:
-                if self.circle_repo.is_member(task["care_circle_id"], user.user_id):
-                    accessible_tasks.append(task)
-            
-            return accessible_tasks
+            return self.task_repo.get_available_tasks()
         
         except Exception as e:
             logger.error(f"Error getting available tasks: {str(e)}")
@@ -245,10 +228,13 @@ class TaskService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Task not found",
             )
-        is_member = self.circle_repo.is_member(task["care_circle_id"], user.user_id)
         is_plan_creator = self._is_plan_creator(task["care_plan_id"], user.user_id)
+        is_request_creator = False
+        req = self.request_repo.get_by_id(task["care_request_id"])
+        if req:
+            is_request_creator = req["created_by"] == user.user_id
         is_task_owner = task.get("claimed_by") == user.user_id
-        if not (is_member and (is_plan_creator or is_task_owner)):
+        if not (is_plan_creator or is_request_creator or is_task_owner):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have access to this task's diary",

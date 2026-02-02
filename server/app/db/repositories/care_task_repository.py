@@ -63,26 +63,14 @@ class CareTaskRepository(BaseRepository):
             logger.error(f"Error getting tasks by user: {str(e)}")
             raise
     
-    def get_available_tasks(self, circle_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_available_tasks(self) -> List[Dict[str, Any]]:
         """
-        Get all available (unclaimed) tasks
-        
-        Args:
-            circle_id: Optional circle ID to filter by
-            
-        Returns:
-            List[dict]: List of available tasks
+        Get all available (unclaimed) tasks.
         """
         try:
-            query = self.db.table(self.table_name).select("*").eq(
+            result = self.db.table(self.table_name).select("*").eq(
                 "status", TaskStatusConstants.AVAILABLE
-            )
-            
-            if circle_id:
-                query = query.eq("care_circle_id", circle_id)
-            
-            result = query.order("priority", desc=True).order("created_at").execute()
-            
+            ).order("priority", desc=True).order("created_at").execute()
             return result.data
         
         except Exception as e:

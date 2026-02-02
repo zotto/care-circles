@@ -1,17 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { CareRequest, CareCircle, CareTask, JobStatusResponse } from '@/types';
+import type { CareRequest, CareTask, JobStatusResponse } from '@/types';
 import { api } from '@/services/api';
 import type { ApiError } from '@/services/api';
 import { CARE_PLAN } from '@/constants';
 
 /**
- * Main store for Care Circles application
- * Manages care requests, circles, and job status
+ * Main store for care requests, plans, and job status
  */
 export const useCareStore = defineStore('care', () => {
-  // State
-  const currentCareCircle = ref<CareCircle | null>(null);
   const careRequests = ref<CareRequest[]>([]);
   const activeJob = ref<any | null>(null); // Using any to allow extra properties
   const currentJobId = ref<string | null>(null);
@@ -58,7 +55,6 @@ export const useCareStore = defineStore('care', () => {
         narrative,
         constraints,
         boundaries,
-        care_circle_id: currentCareCircle.value?.id,
       });
 
       // Store the care request and job ID
@@ -211,22 +207,17 @@ export const useCareStore = defineStore('care', () => {
    */
   const addTask = (): CareTask | null => {
     const latestReq = latestRequest();
-    let careCircleId = '';
     let careRequestId = '';
     if (latestReq) {
-      careCircleId = latestReq.care_circle_id ?? '';
       careRequestId = latestReq.id;
     } else if (currentPlanId.value && tasks.value.length > 0) {
-      const first = tasks.value[0];
-      careCircleId = first?.care_circle_id ?? '';
-      careRequestId = first?.care_request_id ?? '';
+      careRequestId = tasks.value[0]?.care_request_id ?? '';
     } else if (!currentPlanId.value) {
       error.value = 'No care request found. Submit a request first.';
       return null;
     }
     const newTask: CareTask = {
       id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      care_circle_id: careCircleId,
       care_request_id: careRequestId,
       title: '',
       description: '',
@@ -304,7 +295,6 @@ export const useCareStore = defineStore('care', () => {
 
   const reset = () => {
     stopPolling();
-    currentCareCircle.value = null;
     careRequests.value = [];
     activeJob.value = null;
     currentJobId.value = null;
@@ -329,7 +319,6 @@ export const useCareStore = defineStore('care', () => {
 
   return {
     // State
-    currentCareCircle,
     careRequests,
     activeJob,
     currentJobId,

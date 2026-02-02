@@ -75,10 +75,8 @@ async def create_care_plan(
                 detail="Care request not found"
             )
         
-        # Create the plan
         plan = await plan_service.create_plan(
             care_request_id=request.care_request_id,
-            care_circle_id=care_request["care_circle_id"],
             created_by=user.user_id,
             summary=request.summary,
             tasks=request.tasks

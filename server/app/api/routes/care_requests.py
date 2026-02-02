@@ -50,42 +50,12 @@ async def create_care_request(
     from app.main import get_job_runner
     
     try:
-        # Log incoming request for debugging
-        logger.info(f"Received care request: care_circle_id={request.care_circle_id}, narrative_length={len(request.narrative) if request.narrative else 0}")
+        logger.info(f"Received care request: narrative_length={len(request.narrative) if request.narrative else 0}")
         
         db = get_service_client()
         request_repo = CareRequestRepository(db)
         
-        # If no care_circle_id provided, create a default one for the user
-        care_circle_id = request.care_circle_id
-        if not care_circle_id:
-            logger.info(f"No care_circle_id provided, creating default circle for user {user.user_id}")
-            from app.db.repositories.care_circle_repository import CareCircleRepository
-            circle_repo = CareCircleRepository(db)
-            
-            # Check if user already has a default circle
-            user_circles = circle_repo.get_user_circles(user.user_id)
-            if user_circles and len(user_circles) > 0:
-                # Use the first circle
-                care_circle_id = user_circles[0]["id"]
-                logger.info(f"Using existing circle {care_circle_id} for user {user.user_id}")
-            else:
-                # Create a new default circle
-                circle_data = {
-                    "name": "My Care Circle",
-                    "description": "Default care circle",
-                    "owner_id": user.user_id
-                }
-                new_circle = circle_repo.create(circle_data)
-                care_circle_id = new_circle["id"]
-                logger.info(f"Created new default circle {care_circle_id} for user {user.user_id}")
-                
-                # Add user as owner member
-                circle_repo.add_member(care_circle_id, user.user_id, "owner")
-        
-        # Create care request in database
         care_request_data = {
-            "care_circle_id": care_circle_id,
             "created_by": user.user_id,
             "narrative": request.narrative,
             "constraints": request.constraints,
@@ -95,10 +65,8 @@ async def create_care_request(
         
         care_request_record = request_repo.create(care_request_data)
         
-        # Create CareRequest domain object for job runner
         care_request = CareRequest(
             id=care_request_record["id"],
-            care_circle_id=care_request_record["care_circle_id"],
             narrative=care_request_record["narrative"],
             constraints=care_request_record.get("constraints"),
             boundaries=care_request_record.get("boundaries"),
@@ -171,20 +139,14 @@ async def get_care_request(
                 detail=f"Care request {request_id} not found"
             )
         
-        # Check if user has access (member of circle)
-        from app.db.repositories.care_circle_repository import CareCircleRepository
-        circle_repo = CareCircleRepository(db)
-        
-        if not circle_repo.is_member(care_request_record["care_circle_id"], user.user_id):
+        if care_request_record["created_by"] != user.user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have access to this care request"
             )
         
-        # Convert to domain model
         return CareRequest(
             id=care_request_record["id"],
-            care_circle_id=care_request_record["care_circle_id"],
             narrative=care_request_record["narrative"],
             constraints=care_request_record.get("constraints"),
             boundaries=care_request_record.get("boundaries"),

@@ -6,7 +6,7 @@ Handles task claiming, releasing, completion, and task diary (events).
 
 import logging
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.middleware.auth import get_current_user, AuthUser
@@ -50,24 +50,15 @@ class TaskReleaseBody(BaseModel):
     description="Get available tasks that can be claimed"
 )
 async def get_available_tasks(
-    circle_id: str | None = Query(None, description="Filter by care circle ID"),
     user: AuthUser = Depends(get_current_user)
 ):
     """
-    Get available tasks that can be claimed
-    
-    Args:
-        circle_id: Optional circle ID to filter by
-        user: Authenticated user from JWT
-        
-    Returns:
-        List[CareTask]: List of available tasks
+    Get available tasks that can be claimed.
     """
     try:
         db = get_service_client()
         task_service = TaskService(db)
-        
-        tasks = await task_service.get_available_tasks(user, circle_id)
+        tasks = await task_service.get_available_tasks(user)
         
         return tasks
     

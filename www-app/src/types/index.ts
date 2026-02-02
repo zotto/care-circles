@@ -9,17 +9,8 @@ export interface User {
   role: 'organizer' | 'helper';
 }
 
-export interface CareCircle {
-  id: string;
-  name: string;
-  description: string;
-  created_by: string;
-  created_at: string;
-}
-
 export interface CareRequest {
   id: string;
-  care_circle_id: string;
   narrative: string;
   constraints?: string;
   boundaries?: string;
@@ -39,7 +30,6 @@ export interface NeedsMap {
 
 export interface CareTask {
   id: string;
-  care_circle_id: string;
   care_request_id: string;
   title: string;
   description: string;
@@ -88,7 +78,6 @@ export interface CareRequestCreatePayload {
   narrative: string;
   constraints?: string;
   boundaries?: string;
-  care_circle_id?: string;
 }
 
 export interface CareRequestResponse {

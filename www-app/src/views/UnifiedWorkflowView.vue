@@ -571,7 +571,6 @@ onMounted(async () => {
       const tasksData = plan.tasks ?? [];
       const mappedTasks: CareTask[] = tasksData.map((t: any) => ({
         id: t.id,
-        care_circle_id: t.care_circle_id ?? '',
         care_request_id: t.care_request_id ?? '',
         title: t.title ?? '',
         description: t.description ?? '',
@@ -599,7 +598,7 @@ const handleClickOutside = () => {
   activePriorityDropdown.value = null;
 };
 
-const handleSubmit = (data: Omit<CareRequest, 'id' | 'care_circle_id' | 'status' | 'created_at'>) => {
+const handleSubmit = (data: Omit<CareRequest, 'id' | 'status' | 'created_at'>) => {
   // Show "Analyzing Your Request" immediately so the user isn't left waiting on a blank/frozen UI
   requestSubmitted.value = true;
   setTimeout(() => {

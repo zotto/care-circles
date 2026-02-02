@@ -11,7 +11,6 @@ from fastapi import HTTPException, status
 from supabase import Client
 from app.db.repositories.care_plan_repository import CarePlanRepository
 from app.db.repositories.care_task_repository import CareTaskRepository
-from app.db.repositories.care_circle_repository import CareCircleRepository
 from app.middleware.auth import AuthUser
 from app.config.constants import PlanStatusConstants, TaskStatusConstants
 
@@ -25,48 +24,31 @@ class CarePlanService:
         self.db = db
         self.plan_repo = CarePlanRepository(db)
         self.task_repo = CareTaskRepository(db)
-        self.circle_repo = CareCircleRepository(db)
     
     async def create_plan(
         self,
         care_request_id: str,
-        care_circle_id: str,
         created_by: str,
         summary: str,
         tasks: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Create a care plan with tasks
-        
-        This is typically called by the agent pipeline after processing a care request.
-        
-        Args:
-            care_request_id: Care request ID
-            care_circle_id: Care circle ID
-            created_by: User ID who created the request
-            summary: Plan summary
-            tasks: List of task data
-            
-        Returns:
-            dict: Created plan with tasks
+        Create a care plan with tasks.
+
+        Typically called by the agent pipeline after processing a care request.
         """
         try:
-            # Create plan
             plan_data = {
                 "care_request_id": care_request_id,
-                "care_circle_id": care_circle_id,
                 "created_by": created_by,
                 "summary": summary,
                 "status": PlanStatusConstants.DRAFT
             }
-            
             plan = self.plan_repo.create(plan_data)
-            
-            # Add plan_id to all tasks
+
             for task in tasks:
                 task["care_plan_id"] = plan["id"]
                 task["care_request_id"] = care_request_id
-                task["care_circle_id"] = care_circle_id
                 task["status"] = TaskStatusConstants.DRAFT
             
             # Create tasks in bulk
@@ -108,13 +90,16 @@ class CarePlanService:
                     detail="Care plan not found"
                 )
             
-            # Check if user has access
-            if not self.circle_repo.is_member(plan["care_circle_id"], user.user_id):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You don't have access to this care plan"
-                )
-            
+            # Access: plan creator or care request creator
+            if plan["created_by"] != user.user_id:
+                cr = self.db.table("care_requests").select("created_by").eq(
+                    "id", plan["care_request_id"]
+                ).execute()
+                if not cr.data or cr.data[0]["created_by"] != user.user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You don't have access to this care plan"
+                    )
             return plan
         
         except HTTPException:
@@ -134,20 +119,7 @@ class CarePlanService:
             List[dict]: List of care plans
         """
         try:
-            # Get user's circles
-            circles = self.circle_repo.get_user_circles(user.user_id)
-            circle_ids = [circle["id"] for circle in circles]
-            
-            # Get plans for all circles
-            all_plans = []
-            for circle_id in circle_ids:
-                plans = self.plan_repo.get_by_circle(circle_id)
-                all_plans.extend(plans)
-            
-            # Sort by created_at descending
-            all_plans.sort(key=lambda p: p["created_at"], reverse=True)
-            
-            return all_plans
+            return self.plan_repo.get_by_creator(user.user_id)
         
         except Exception as e:
             logger.error(f"Error listing user plans: {str(e)}")
@@ -338,7 +310,6 @@ class CarePlanService:
             task_payload = {
                 "care_plan_id": plan_id,
                 "care_request_id": plan["care_request_id"],
-                "care_circle_id": plan["care_circle_id"],
                 "title": task_data.get("title", "").strip() or "New task",
                 "description": task_data.get("description", "").strip() or "",
                 "category": task_data.get("category", "Other"),

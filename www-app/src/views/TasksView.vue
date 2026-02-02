@@ -18,6 +18,7 @@
             :is-polling="careStore.isPolling"
             :job-status="careStore.activeJob?.status"
             :error="careStore.error"
+            :is-approving-plan="careStore.isApprovingPlan"
             @refresh="handleRefresh"
             @update-task="handleUpdateTask"
             @delete-task="handleDeleteTask"
@@ -25,6 +26,19 @@
             @cancel="handleCancel"
           />
         </section>
+
+        <!-- Approval processing modal -->
+        <Transition name="modal">
+          <div v-if="careStore.isApprovingPlan" class="modal-overlay modal-overlay--non-dismissible" aria-busy="true" aria-live="polite">
+            <BaseCard class="approval-processing-modal" variant="elevated" @click.stop>
+              <div class="approval-processing-modal__content">
+                <div class="approval-processing-modal__spinner"></div>
+                <h2 class="approval-processing-modal__title">{{ PLAN_APPROVAL.PROCESSING.TITLE }}</h2>
+                <p class="approval-processing-modal__description">{{ PLAN_APPROVAL.PROCESSING.DESCRIPTION }}</p>
+              </div>
+            </BaseCard>
+          </div>
+        </Transition>
 
         <!-- Success Modal -->
         <Transition name="modal">
@@ -51,10 +65,8 @@
                   </svg>
                 </div>
 
-                <h2 class="approval-modal__title">Plan Approved!</h2>
-                <p class="approval-modal__message">
-                  Your care plan has been approved and is ready to share with your helpers.
-                </p>
+                <h2 class="approval-modal__title">{{ PLAN_APPROVAL.SUCCESS.TITLE }}</h2>
+                <p class="approval-modal__message">{{ PLAN_APPROVAL.SUCCESS.MESSAGE }}</p>
 
                 <BaseButton
                   variant="primary"
@@ -62,7 +74,7 @@
                   @click="handleCloseModal"
                   full-width
                 >
-                  Got it
+                  {{ PLAN_APPROVAL.ACTIONS.DONE }}
                 </BaseButton>
               </div>
             </BaseCard>
@@ -83,11 +95,22 @@
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
+
+    <!-- Approval Error Dialog -->
+    <ConfirmDialog
+      ref="errorDialog"
+      :title="PLAN_APPROVAL.ERROR.TITLE"
+      :message="careStore.error || PLAN_APPROVAL.ERROR.MESSAGE"
+      confirm-text="OK"
+      :cancel-text="''"
+      variant="danger"
+      :icon="mdiAlertCircle"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import TaskReviewPanel from '@/components/organisms/TaskReviewPanel.vue';
 import BaseCard from '@/components/atoms/BaseCard.vue';
@@ -95,11 +118,13 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import { useCareStore } from '@/stores/careStore';
 import type { CareTask } from '@/types';
+import { PLAN_APPROVAL } from '@/constants';
 import { mdiAlertCircle } from '@mdi/js';
 
 const router = useRouter();
 const careStore = useCareStore();
 const showApprovalSuccess = ref(false);
+const errorDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
 const deleteDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
 const pendingDeleteTaskId = ref<string | null>(null);
 
@@ -114,6 +139,19 @@ onUnmounted(() => {
   // Clean up polling when leaving the page
   careStore.stopPolling();
 });
+
+watch(
+  () => careStore.isApprovingPlan,
+  (isApproving, wasApproving) => {
+    if (wasApproving && !isApproving) {
+      if (careStore.shareUrl) {
+        showApprovalSuccess.value = true;
+      } else if (careStore.error) {
+        errorDialog.value?.open();
+      }
+    }
+  }
+);
 
 const handleRefresh = async () => {
   await careStore.refreshJobStatus();
@@ -140,17 +178,8 @@ function cancelDelete() {
   pendingDeleteTaskId.value = null;
 }
 
-const handleApprove = async (planName: string) => {
-  console.log('TasksView: Received approve with plan name:', planName);
-  try {
-    const shareUrl = await careStore.approvePlan(planName);
-    if (shareUrl) {
-      showApprovalSuccess.value = true;
-    }
-  } catch (err) {
-    // Error is already handled in the store
-    console.error('Failed to approve plan:', err);
-  }
+const handleApprove = (planName: string) => {
+  careStore.approvePlan(planName);
 };
 
 const handleCancel = () => {
@@ -222,6 +251,57 @@ const handleCloseModal = () => {
   padding: var(--spacing-lg);
 }
 
+.modal-overlay--non-dismissible {
+  pointer-events: auto;
+  cursor: wait;
+}
+
+.approval-processing-modal {
+  max-width: 420px;
+  width: 100%;
+  box-shadow: var(--shadow-2xl);
+  border: none;
+}
+
+.approval-processing-modal__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl);
+  text-align: center;
+}
+
+.approval-processing-modal__spinner {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.approval-processing-modal__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.approval-processing-modal__description {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .approval-modal {
   max-width: 480px;
   width: 100%;
@@ -279,12 +359,16 @@ const handleCloseModal = () => {
 }
 
 .modal-enter-active .approval-modal,
-.modal-leave-active .approval-modal {
+.modal-leave-active .approval-modal,
+.modal-enter-active .approval-processing-modal,
+.modal-leave-active .approval-processing-modal {
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .modal-enter-from .approval-modal,
-.modal-leave-to .approval-modal {
+.modal-leave-to .approval-modal,
+.modal-enter-from .approval-processing-modal,
+.modal-leave-to .approval-processing-modal {
   transform: scale(0.9) translateY(20px);
   opacity: 0;
 }

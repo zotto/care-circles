@@ -141,3 +141,27 @@ export const CARE_PLAN = {
     TASK_MISSING_PRIORITY: 'Task must have a priority set.',
   },
 } as const;
+
+/** Plan approval flow: processing state and success/error copy (single responsibility: UI copy) */
+export const PLAN_APPROVAL = {
+  PROCESSING: {
+    TITLE: 'Approving plan',
+    DESCRIPTION: 'Your care plan is being approved. You can continue reviewing while we process.',
+  },
+  SUCCESS: {
+    TITLE: 'Care Plan Approved',
+    MESSAGE: 'Your care plan has been successfully approved and is ready to share with your helpers.',
+  },
+  ERROR: {
+    TITLE: 'Failed to Approve Plan',
+    MESSAGE: 'Failed to approve plan. Please try again.',
+  },
+  SHARE: {
+    LABEL: 'Share this link with volunteers:',
+    COPY_BUTTON: 'Copy',
+    COPIED_BUTTON: 'Copied!',
+  },
+  ACTIONS: {
+    DONE: 'Done',
+  },
+} as const;

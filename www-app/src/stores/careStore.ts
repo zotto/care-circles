@@ -20,6 +20,8 @@ export const useCareStore = defineStore('care', () => {
   const shareUrl = ref<string | null>(null);
   const isLoading = ref(false);
   const isPolling = ref(false);
+  /** True while approvePlan is running (async); UI shows processing state without blocking. */
+  const isApprovingPlan = ref(false);
   const error = ref<string | null>(null);
 
   // Computed
@@ -233,62 +235,62 @@ export const useCareStore = defineStore('care', () => {
   };
 
   /**
-   * Approves the plan and creates it on the server.
+   * Approves the plan and creates it on the server. Runs asynchronously; UI should not await.
+   * Sets isApprovingPlan while running. On success sets shareUrl; on failure sets error.
    * @param planName - Display name for the plan
    * @param tasksToApprove - Optional list of tasks to submit; if omitted, uses store tasks. Caller should pass only valid, non-empty tasks.
    */
-  const approvePlan = async (
-    planName?: string,
-    tasksToApprove?: CareTask[]
-  ): Promise<string | null> => {
+  const approvePlan = (planName?: string, tasksToApprove?: CareTask[]): void => {
     const tasksToUse = tasksToApprove ?? tasks.value;
     if (!tasksToUse || tasksToUse.length === 0) {
       error.value = 'No tasks to approve';
-      return null;
+      return;
     }
 
     const latestReq = latestRequest();
     if (!latestReq) {
       error.value = 'No care request found';
-      return null;
+      return;
     }
 
-    isLoading.value = true;
+    isApprovingPlan.value = true;
     error.value = null;
+    shareUrl.value = null;
 
-    try {
-      const finalPlanName = planName?.trim() || 'Care Plan';
+    const run = async () => {
+      try {
+        const finalPlanName = planName?.trim() || 'Care Plan';
 
-      if (!currentPlanId.value) {
-        const planResponse = await api.createCarePlan(
-          latestReq.id,
-          finalPlanName,
-          tasksToUse.map((task) => ({
-            title: task.title,
-            description: task.description,
-            category: task.category,
-            priority: task.priority,
-          }))
-        );
-        currentPlanId.value = planResponse.plan_id;
-      } else {
-        await api.updateCarePlan(currentPlanId.value, finalPlanName);
+        if (!currentPlanId.value) {
+          const planResponse = await api.createCarePlan(
+            latestReq!.id,
+            finalPlanName,
+            tasksToUse.map((task) => ({
+              title: task.title,
+              description: task.description,
+              category: task.category,
+              priority: task.priority,
+            }))
+          );
+          currentPlanId.value = planResponse.plan_id;
+        } else {
+          await api.updateCarePlan(currentPlanId.value, finalPlanName);
+        }
+
+        await api.approveCarePlan(currentPlanId.value!);
+
+        const shareResponse = await api.generateShareLink(currentPlanId.value!);
+        const baseUrl = window.location.origin;
+        shareUrl.value = `${baseUrl}${shareResponse.share_url}`;
+      } catch (err) {
+        const apiError = err as ApiError;
+        error.value = apiError.message || 'Failed to approve plan';
+      } finally {
+        isApprovingPlan.value = false;
       }
+    };
 
-      await api.approveCarePlan(currentPlanId.value);
-
-      const shareResponse = await api.generateShareLink(currentPlanId.value);
-      const baseUrl = window.location.origin;
-      shareUrl.value = `${baseUrl}${shareResponse.share_url}`;
-
-      return shareUrl.value;
-    } catch (err) {
-      const apiError = err as ApiError;
-      error.value = apiError.message || 'Failed to approve plan';
-      throw err;
-    } finally {
-      isLoading.value = false;
-    }
+    run();
   };
 
   const reset = () => {
@@ -302,6 +304,7 @@ export const useCareStore = defineStore('care', () => {
     shareUrl.value = null;
     isLoading.value = false;
     isPolling.value = false;
+    isApprovingPlan.value = false;
     error.value = null;
   };
 
@@ -316,6 +319,7 @@ export const useCareStore = defineStore('care', () => {
     shareUrl,
     isLoading,
     isPolling,
+    isApprovingPlan,
     error,
 
     // Computed

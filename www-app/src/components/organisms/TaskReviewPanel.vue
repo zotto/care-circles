@@ -148,7 +148,7 @@
             variant="primary"
             size="lg"
             @click="handleApprove"
-            :disabled="!planName || planName.trim() === ''"
+            :disabled="!planName || planName.trim() === '' || isApprovingPlan"
           >
             <BaseIcon :path="mdiCheck" :size="20" style="margin-right: 8px;" />
             Approve Plan
@@ -186,6 +186,8 @@ interface Props {
   isPolling?: boolean;
   jobStatus?: string | null;
   error?: string | null;
+  /** True while plan approval is in progress (async); disables approve button. */
+  isApprovingPlan?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -193,6 +195,7 @@ const props = withDefaults(defineProps<Props>(), {
   isPolling: false,
   jobStatus: null,
   error: null,
+  isApprovingPlan: false,
 });
 
 const emit = defineEmits<{

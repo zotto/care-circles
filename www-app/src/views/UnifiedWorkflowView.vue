@@ -201,6 +201,7 @@
                     variant="outline"
                     size="md"
                     @click="handleResetClick"
+                    :disabled="careStore.isApprovingPlan"
                   >
                     Start Over
                   </BaseButton>
@@ -208,7 +209,7 @@
                     variant="primary"
                     size="md"
                     @click="handleApprove"
-                    :disabled="validTaskCount === 0 || !planName || planName.trim() === ''"
+                    :disabled="validTaskCount === 0 || !planName || planName.trim() === '' || careStore.isApprovingPlan"
                   >
                     <BaseIcon :path="mdiCheckCircle" :size="18" style="margin-right: 6px;" />
                     Approve Plan
@@ -220,6 +221,19 @@
         </Transition>
       </div>
     </div>
+
+    <!-- Approval processing modal (non-blocking; UI stays responsive) -->
+    <Transition name="modal">
+      <div v-if="careStore.isApprovingPlan" class="modal-overlay modal-overlay--non-dismissible" aria-busy="true" aria-live="polite">
+        <BaseCard class="approval-processing-modal" variant="elevated" @click.stop>
+          <div class="approval-processing-modal__content">
+            <div class="approval-processing-modal__spinner"></div>
+            <h2 class="approval-processing-modal__title">{{ PLAN_APPROVAL.PROCESSING.TITLE }}</h2>
+            <p class="approval-processing-modal__description">{{ PLAN_APPROVAL.PROCESSING.DESCRIPTION }}</p>
+          </div>
+        </BaseCard>
+      </div>
+    </Transition>
 
     <!-- Success Modal -->
     <Transition name="modal">
@@ -248,14 +262,12 @@
               </svg>
             </div>
 
-            <h2 class="approval-modal__title">Care Plan Approved</h2>
-            <p class="approval-modal__message">
-              Your care plan has been successfully approved and is ready to share with your helpers.
-            </p>
+            <h2 class="approval-modal__title">{{ PLAN_APPROVAL.SUCCESS.TITLE }}</h2>
+            <p class="approval-modal__message">{{ PLAN_APPROVAL.SUCCESS.MESSAGE }}</p>
 
             <!-- Share Link Section -->
             <div v-if="planShareUrl" class="approval-modal__share">
-              <label class="approval-modal__share-label">Share this link with volunteers:</label>
+              <label class="approval-modal__share-label">{{ PLAN_APPROVAL.SHARE.LABEL }}</label>
               <div class="approval-modal__share-box">
                 <input 
                   ref="shareUrlInput"
@@ -273,7 +285,7 @@
                   :class="{ 'is-copied': isCopied }"
                 >
                   <BaseIcon :path="isCopied ? mdiCheck : mdiContentCopy" :size="16" style="margin-right: 4px;" />
-                  {{ isCopied ? 'Copied!' : 'Copy' }}
+                  {{ isCopied ? PLAN_APPROVAL.SHARE.COPIED_BUTTON : PLAN_APPROVAL.SHARE.COPY_BUTTON }}
                 </BaseButton>
               </div>
             </div>
@@ -285,7 +297,7 @@
                 @click="handleCloseModal"
                 full-width
               >
-                Done
+                {{ PLAN_APPROVAL.ACTIONS.DONE }}
               </BaseButton>
             </div>
           </div>
@@ -385,7 +397,7 @@ import BaseTextArea from '@/components/atoms/BaseTextArea.vue';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import { useCareStore } from '@/stores/careStore';
 import type { CareRequest, CareTask } from '@/types';
-import { PROCESSING_STEPS, TASK_PRIORITIES } from '@/constants';
+import { PROCESSING_STEPS, TASK_PRIORITIES, PLAN_APPROVAL } from '@/constants';
 import {
   validateTasksForApproval,
   getValidTasksForSubmit,
@@ -472,6 +484,22 @@ watch(requestSubmitted, (submitted) => {
   }
 });
 
+// When approval finishes (async), show success modal or error dialog
+watch(
+  () => careStore.isApprovingPlan,
+  (isApproving, wasApproving) => {
+    if (wasApproving && !isApproving) {
+      if (careStore.shareUrl) {
+        planShareUrl.value = careStore.shareUrl;
+        showApprovalSuccess.value = true;
+        isPlanApproved.value = true;
+      } else if (careStore.error) {
+        showError(PLAN_APPROVAL.ERROR.TITLE, careStore.error || PLAN_APPROVAL.ERROR.MESSAGE);
+      }
+    }
+  }
+);
+
 onMounted(() => {
   window.scrollTo(0, 0);
   if ('scrollRestoration' in history) {
@@ -545,7 +573,7 @@ const handleCloseDeleteModal = () => {
   taskToDelete.value = null;
 };
 
-const handleApprove = async () => {
+const handleApprove = () => {
   if (!planName.value || planName.value.trim() === '') {
     return;
   }
@@ -565,20 +593,7 @@ const handleApprove = async () => {
     return;
   }
   const tasksToSubmit = getValidTasksForSubmit(careStore.tasks ?? []);
-  try {
-    const shareUrl = await careStore.approvePlan(planName.value.trim(), tasksToSubmit);
-    if (shareUrl) {
-      planShareUrl.value = shareUrl;
-      showApprovalSuccess.value = true;
-      isPlanApproved.value = true;
-    }
-  } catch (error: any) {
-    console.error('Failed to approve plan:', error);
-    showError(
-      'Failed to Approve Plan',
-      error.message || 'Failed to approve plan. Please try again.'
-    );
-  }
+  careStore.approvePlan(planName.value.trim(), tasksToSubmit);
 };
 
 function showError(title: string, message: string) {
@@ -1304,6 +1319,51 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   justify-content: center;
   z-index: var(--z-modal);
   padding: var(--spacing-lg);
+}
+
+.modal-overlay--non-dismissible {
+  pointer-events: auto;
+  cursor: wait;
+}
+
+.approval-processing-modal {
+  max-width: 420px;
+  width: 100%;
+  box-shadow: var(--shadow-2xl);
+  border: none;
+}
+
+.approval-processing-modal__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl);
+  text-align: center;
+}
+
+.approval-processing-modal__spinner {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.approval-processing-modal__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.approval-processing-modal__description {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin: 0;
 }
 
 .approval-modal {

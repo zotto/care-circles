@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import type { CareRequest, CareCircle, CareTask, JobStatusResponse } from '@/types';
 import { api } from '@/services/api';
 import type { ApiError } from '@/services/api';
+import { CARE_PLAN } from '@/constants';
 
 /**
  * Main store for Care Circles application
@@ -202,12 +203,46 @@ export const useCareStore = defineStore('care', () => {
     tasks.value = tasks.value.filter((t) => t.id !== taskId);
   };
 
+  /**
+   * Adds a new empty draft task to the plan (e.g. for manual entry).
+   * Requires an active care request (latestRequest).
+   */
+  const addTask = (): CareTask | null => {
+    const latestReq = latestRequest();
+    if (!latestReq) {
+      error.value = 'No care request found. Submit a request first.';
+      return null;
+    }
+    const newTask: CareTask = {
+      id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      care_circle_id: latestReq.care_circle_id ?? '',
+      care_request_id: latestReq.id,
+      title: '',
+      description: '',
+      category: CARE_PLAN.DEFAULT_TASK_CATEGORY,
+      priority: CARE_PLAN.DEFAULT_TASK_PRIORITY,
+      status: 'draft',
+      created_at: new Date().toISOString(),
+    };
+    tasks.value.push(newTask);
+    return newTask;
+  };
+
   const clearError = () => {
     error.value = null;
   };
 
-  const approvePlan = async (planName?: string): Promise<string | null> => {
-    if (!tasks.value || tasks.value.length === 0) {
+  /**
+   * Approves the plan and creates it on the server.
+   * @param planName - Display name for the plan
+   * @param tasksToApprove - Optional list of tasks to submit; if omitted, uses store tasks. Caller should pass only valid, non-empty tasks.
+   */
+  const approvePlan = async (
+    planName?: string,
+    tasksToApprove?: CareTask[]
+  ): Promise<string | null> => {
+    const tasksToUse = tasksToApprove ?? tasks.value;
+    if (!tasksToUse || tasksToUse.length === 0) {
       error.value = 'No tasks to approve';
       return null;
     }
@@ -222,17 +257,13 @@ export const useCareStore = defineStore('care', () => {
     error.value = null;
 
     try {
-      // Use provided plan name or default to 'Care Plan'
       const finalPlanName = planName?.trim() || 'Care Plan';
-      console.log('Approving plan with name:', finalPlanName, 'provided:', planName);
 
-      // First, create the care plan (if not already created)
       if (!currentPlanId.value) {
-        console.log('Creating new plan with name:', finalPlanName);
         const planResponse = await api.createCarePlan(
           latestReq.id,
           finalPlanName,
-          tasks.value.map(task => ({
+          tasksToUse.map((task) => ({
             title: task.title,
             description: task.description,
             category: task.category,
@@ -241,17 +272,12 @@ export const useCareStore = defineStore('care', () => {
         );
         currentPlanId.value = planResponse.plan_id;
       } else {
-        // Plan already exists, update the name
-        console.log('Updating existing plan', currentPlanId.value, 'with name:', finalPlanName);
         await api.updateCarePlan(currentPlanId.value, finalPlanName);
       }
 
-      // Approve the plan
       await api.approveCarePlan(currentPlanId.value);
 
-      // Generate share link
       const shareResponse = await api.generateShareLink(currentPlanId.value);
-      // Construct full URL for sharing
       const baseUrl = window.location.origin;
       shareUrl.value = `${baseUrl}${shareResponse.share_url}`;
 
@@ -307,6 +333,7 @@ export const useCareStore = defineStore('care', () => {
     refreshJobStatus,
     updateTask,
     deleteTask,
+    addTask,
     clearError,
     approvePlan,
     reset,

@@ -150,8 +150,9 @@
                         class="task-item__delete"
                         @click="handleDeleteTaskClick(task.id)"
                         title="Remove task"
+                        aria-label="Remove task"
                       >
-                        <BaseIcon :path="mdiClose" :size="16" />
+                        <BaseIcon :path="mdiDelete" :size="18" />
                       </button>
                     </div>
 
@@ -176,11 +177,24 @@
                 </TransitionGroup>
               </div>
 
+              <!-- Add Task -->
+              <div class="care-plan-card__add-task">
+                <BaseButton
+                  variant="outline"
+                  size="md"
+                  class="care-plan-card__add-task-btn"
+                  @click="handleAddTask"
+                >
+                  <BaseIcon :path="mdiPlus" :size="18" class="care-plan-card__add-task-icon" />
+                  Add task
+                </BaseButton>
+              </div>
+
               <!-- Integrated Approve Actions Footer -->
               <div class="care-plan-card__footer">
                 <div class="care-plan-card__footer-info">
                   <BaseIcon :path="mdiInformationOutline" :size="16" />
-                  <span>{{ careStore.tasks.length }} task{{ careStore.tasks.length !== 1 ? 's' : '' }} ready</span>
+                  <span>{{ validTaskCount }} task{{ validTaskCount !== 1 ? 's' : '' }} ready</span>
                 </div>
                 <div class="care-plan-card__footer-actions">
                   <BaseButton
@@ -194,7 +208,7 @@
                     variant="primary"
                     size="md"
                     @click="handleApprove"
-                    :disabled="careStore.tasks.length === 0 || !planName || planName.trim() === ''"
+                    :disabled="validTaskCount === 0 || !planName || planName.trim() === ''"
                   >
                     <BaseIcon :path="mdiCheckCircle" :size="18" style="margin-right: 6px;" />
                     Approve Plan
@@ -285,7 +299,7 @@
         <BaseCard class="confirm-modal" variant="elevated" @click.stop>
           <div class="confirm-modal__content">
             <div class="confirm-modal__icon">
-              <BaseIcon :path="mdiAlertCircle" :size="48" />
+              <BaseIcon :path="mdiAlertCircle" :size="40" />
             </div>
             <h2 class="confirm-modal__title">Remove Task</h2>
             <p class="confirm-modal__message">
@@ -294,14 +308,14 @@
             <div class="confirm-modal__actions">
               <BaseButton
                 variant="outline"
-                size="lg"
+                size="md"
                 @click="handleCloseDeleteModal"
               >
                 Cancel
               </BaseButton>
               <BaseButton
                 variant="danger"
-                size="lg"
+                size="md"
                 @click="confirmDeleteTask"
               >
                 Remove Task
@@ -318,7 +332,7 @@
         <BaseCard class="confirm-modal" variant="elevated" @click.stop>
           <div class="confirm-modal__content">
             <div class="confirm-modal__icon">
-              <BaseIcon :path="mdiAlertCircle" :size="48" />
+              <BaseIcon :path="mdiAlertCircle" :size="40" />
             </div>
             <h2 class="confirm-modal__title">Start Over</h2>
             <p class="confirm-modal__message">
@@ -327,14 +341,14 @@
             <div class="confirm-modal__actions">
               <BaseButton
                 variant="outline"
-                size="lg"
+                size="md"
                 @click="handleCloseResetModal"
               >
                 Cancel
               </BaseButton>
               <BaseButton
                 variant="danger"
-                size="lg"
+                size="md"
                 @click="confirmReset"
               >
                 Start Over
@@ -372,16 +386,21 @@ import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import { useCareStore } from '@/stores/careStore';
 import type { CareRequest, CareTask } from '@/types';
 import { PROCESSING_STEPS, TASK_PRIORITIES } from '@/constants';
+import {
+  validateTasksForApproval,
+  getValidTasksForSubmit,
+} from '@/utils/carePlanValidation';
 
 // Icons
-import { 
-  mdiClose, 
-  mdiCheckCircle, 
+import {
+  mdiDelete,
+  mdiPlus,
+  mdiCheckCircle,
   mdiInformationOutline,
   mdiAlertCircle,
   mdiChevronDown,
   mdiContentCopy,
-  mdiCheck
+  mdiCheck,
 } from '@mdi/js';
 
 const careStore = useCareStore();
@@ -422,6 +441,9 @@ const showAIAnalysisSection = computed(() => {
 const showReviewSection = computed(() => {
   return requestSubmitted.value && isJobComplete.value && careStore.hasTasks();
 });
+
+/** Number of tasks that are non-empty and have title, description, and priority (ready to submit) */
+const validTaskCount = computed(() => getValidTasksForSubmit(careStore.tasks ?? []).length);
 
 const getAgentStatus = (agent: string): string => {
   if (!careStore.activeJob || !careStore.activeJob.agent_progress) {
@@ -501,6 +523,10 @@ const handlePriorityChange = (taskId: string, priority: 'low' | 'medium' | 'high
   activePriorityDropdown.value = null;
 };
 
+const handleAddTask = () => {
+  careStore.addTask();
+};
+
 const handleDeleteTaskClick = (taskId: string) => {
   taskToDelete.value = taskId;
   showDeleteModal.value = true;
@@ -523,14 +549,35 @@ const handleApprove = async () => {
   if (!planName.value || planName.value.trim() === '') {
     return;
   }
+  const validation = validateTasksForApproval(careStore.tasks ?? []);
+  if (!validation.valid) {
+    const nums = validation.invalidTaskNumbers;
+    const taskLabel =
+      nums?.length && nums.length <= 10
+        ? nums.length === 1
+          ? `Task #${nums[0]}`
+          : `Tasks #${nums!.map((n) => n).join(', #')}`
+        : null;
+    const message = taskLabel
+      ? `Please add a title, description, and priority to every task before approving.\n\nMissing: ${taskLabel}`
+      : (validation.message ?? 'Please complete all tasks.');
+    showError('Tasks incomplete', message);
+    return;
+  }
+  const tasksToSubmit = getValidTasksForSubmit(careStore.tasks ?? []);
   try {
-    const shareUrl = await careStore.approvePlan(planName.value.trim());
-    planShareUrl.value = shareUrl;
-    showApprovalSuccess.value = true;
-    isPlanApproved.value = true;
+    const shareUrl = await careStore.approvePlan(planName.value.trim(), tasksToSubmit);
+    if (shareUrl) {
+      planShareUrl.value = shareUrl;
+      showApprovalSuccess.value = true;
+      isPlanApproved.value = true;
+    }
   } catch (error: any) {
     console.error('Failed to approve plan:', error);
-    showError('Failed to Approve Plan', error.message || 'Failed to approve plan. Please try again.');
+    showError(
+      'Failed to Approve Plan',
+      error.message || 'Failed to approve plan. Please try again.'
+    );
   }
 };
 
@@ -1145,6 +1192,21 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   opacity: 0.6;
 }
 
+.care-plan-card__add-task {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px dashed var(--color-border-light);
+}
+
+.care-plan-card__add-task-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.care-plan-card__add-task-icon {
+  flex-shrink: 0;
+}
+
 /* Care Plan Card Footer - Integrated Actions */
 .care-plan-card__plan-name {
   padding: var(--spacing-md) var(--spacing-lg);
@@ -1367,20 +1429,21 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   margin-top: var(--spacing-sm);
 }
 
-/* Confirm Modal (Start Over & Delete Task) */
+/* Confirm Modal (Start Over & Delete Task) - compact */
 .confirm-modal {
-  max-width: 480px;
+  max-width: 380px;
   width: 100%;
-  box-shadow: var(--shadow-2xl);
+  box-shadow: var(--shadow-xl);
   border: none;
+  border-radius: var(--radius-md);
 }
 
 .confirm-modal__content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-2xl);
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
   text-align: center;
 }
 
@@ -1389,28 +1452,27 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   align-items: center;
   justify-content: center;
   color: var(--color-warning, #f59e0b);
-  margin-bottom: var(--spacing-xs);
 }
 
 .confirm-modal__title {
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 .confirm-modal__message {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
   max-width: 100%;
 }
 
 .confirm-modal__actions {
   display: flex;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   width: 100%;
   margin-top: var(--spacing-xs);
   justify-content: center;
@@ -1418,7 +1480,7 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
 .confirm-modal__actions .base-button {
   flex: 1;
-  min-width: 120px;
+  min-width: 100px;
 }
 
 /* Transitions */
@@ -1586,12 +1648,12 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   }
 
   .confirm-modal {
-    max-width: calc(100% - var(--spacing-xl));
+    max-width: calc(100% - var(--spacing-lg));
   }
 
   .confirm-modal__content {
-    padding: var(--spacing-xl);
-    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    gap: var(--spacing-sm);
   }
 
   .confirm-modal__actions {

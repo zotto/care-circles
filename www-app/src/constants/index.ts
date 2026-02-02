@@ -125,3 +125,19 @@ export const REQUEST_STATUS = ['submitted', 'processing', 'completed'] as const;
 export const TASK_STATUS = ['draft', 'active', 'completed'] as const;
 export const JOB_STATUS = ['queued', 'running', 'completed', 'failed'] as const;
 export const APPROVAL_STATUS = ['pending', 'approved'] as const;
+
+// Care Plan Review (pre-approval validation)
+export const CARE_PLAN = {
+  /** Default category for manually added tasks */
+  DEFAULT_TASK_CATEGORY: 'Other',
+  /** Default priority for new empty tasks */
+  DEFAULT_TASK_PRIORITY: 'medium' as const,
+  /** Validation messages */
+  VALIDATION: {
+    NO_TASKS: 'Please add at least one task with a title, description, and priority.',
+    TASK_MISSING_FIELDS: 'All tasks must have a title, description, and priority. Please complete the highlighted task(s).',
+    TASK_MISSING_TITLE: 'Task must have a title.',
+    TASK_MISSING_DESCRIPTION: 'Task must have a description.',
+    TASK_MISSING_PRIORITY: 'Task must have a priority set.',
+  },
+} as const;

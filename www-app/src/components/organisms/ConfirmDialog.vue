@@ -6,7 +6,7 @@
           <div class="modal-content">
             <!-- Icon -->
             <div v-if="icon" class="modal-icon" :class="`modal-icon--${variant}`">
-              <BaseIcon :path="icon" :size="24" />
+              <BaseIcon :path="icon" :size="20" />
             </div>
 
             <!-- Title -->
@@ -16,8 +16,9 @@
             <p class="modal-message">{{ message }}</p>
 
             <!-- Actions -->
-            <div class="modal-actions">
+            <div class="modal-actions" :class="{ 'modal-actions--single': !cancelText }">
               <BaseButton
+                v-if="cancelText"
                 variant="outline"
                 size="md"
                 @click="handleCancel"
@@ -30,6 +31,7 @@
                 size="md"
                 @click="handleConfirm"
                 :disabled="isLoading"
+                class="modal-actions__confirm"
               >
                 {{ isLoading ? loadingText : confirmText }}
               </BaseButton>
@@ -123,14 +125,14 @@ defineExpose({
   align-items: center;
   justify-content: center;
   z-index: 9999;
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
 }
 
 .modal-container {
   background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  max-width: 400px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1), 0 6px 8px -5px rgba(0, 0, 0, 0.04);
+  max-width: 360px;
   width: 100%;
   animation: slideUp 0.2s ease-out;
 }
@@ -147,22 +149,21 @@ defineExpose({
 }
 
 .modal-content {
-  padding: var(--spacing-xl);
+  padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
 }
 
 .modal-icon {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--spacing-xs);
 }
 
 .modal-icon--primary {
@@ -181,17 +182,18 @@ defineExpose({
 }
 
 .modal-title {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin: 0;
 }
 
 .modal-message {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
+  white-space: pre-line;
 }
 
 .modal-actions {
@@ -199,10 +201,21 @@ defineExpose({
   gap: var(--spacing-sm);
   margin-top: var(--spacing-md);
   width: 100%;
+  justify-content: center;
 }
 
 .modal-actions > * {
+  min-width: 100px;
+}
+
+.modal-actions--single {
+  justify-content: stretch;
+}
+
+.modal-actions--single .modal-actions__confirm {
   flex: 1;
+  max-width: 160px;
+  margin: 0 auto;
 }
 
 /* Modal Transitions */
@@ -230,11 +243,11 @@ defineExpose({
 /* Responsive */
 @media (max-width: 480px) {
   .modal-overlay {
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
   }
 
   .modal-content {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
   }
 
   .modal-actions {

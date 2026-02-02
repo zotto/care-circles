@@ -1,12 +1,12 @@
 /**
  * Task Store
- * 
- * Manages user's claimed tasks.
+ *
+ * Manages user's claimed tasks and task diary (events).
  */
 
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import type { CareTask } from '@/types';
+import type { CareTask, CareTaskEvent } from '@/types';
 import { api } from '@/services/api';
 import type { ApiError } from '@/services/api';
 
@@ -57,13 +57,12 @@ export const useTaskStore = defineStore('task', () => {
     }
   }
 
-  async function releaseTask(taskId: string): Promise<CareTask> {
+  async function releaseTask(taskId: string, reason: string): Promise<CareTask> {
     isLoading.value = true;
     error.value = null;
 
     try {
-      const response = await api.post(`/tasks/${taskId}/release`);
-      const releasedTask = response.data;
+      const releasedTask = await api.releaseTaskWithReason(taskId, reason);
 
       // Remove from my tasks
       myTasks.value = myTasks.value.filter((t) => t.id !== taskId);
@@ -78,13 +77,12 @@ export const useTaskStore = defineStore('task', () => {
     }
   }
 
-  async function completeTask(taskId: string): Promise<CareTask> {
+  async function completeTask(taskId: string, outcome: string): Promise<CareTask> {
     isLoading.value = true;
     error.value = null;
 
     try {
-      const response = await api.post(`/tasks/${taskId}/complete`);
-      const completedTask = response.data;
+      const completedTask = await api.completeTaskWithOutcome(taskId, outcome);
 
       // Update in my tasks
       const index = myTasks.value.findIndex((t) => t.id === taskId);
@@ -99,6 +97,29 @@ export const useTaskStore = defineStore('task', () => {
       throw err;
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  async function addTaskStatus(taskId: string, content: string): Promise<CareTaskEvent> {
+    error.value = null;
+
+    try {
+      const event = await api.addTaskStatus(taskId, content);
+      return event;
+    } catch (err) {
+      const apiError = err as ApiError;
+      error.value = apiError.message || 'Failed to add status';
+      throw err;
+    }
+  }
+
+  async function fetchTaskEvents(taskId: string): Promise<CareTaskEvent[]> {
+    try {
+      return await api.getTaskEvents(taskId);
+    } catch (err) {
+      const apiError = err as ApiError;
+      error.value = apiError.message || 'Failed to load task diary';
+      throw err;
     }
   }
 
@@ -147,6 +168,8 @@ export const useTaskStore = defineStore('task', () => {
     claimTask,
     releaseTask,
     completeTask,
+    addTaskStatus,
+    fetchTaskEvents,
     updateTask,
     clearError,
     reset,

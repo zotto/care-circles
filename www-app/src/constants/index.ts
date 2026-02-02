@@ -163,6 +163,49 @@ export const PLAN_ACTIONS = {
   },
 } as const;
 
+/** Task diary (My Tasks): add status, complete outcome, release reason */
+export const TASK_DIARY = {
+  ADD_STATUS: {
+    LABEL: 'Add status',
+    MESSAGE: 'Your update will be visible to the plan owner.',
+    PLACEHOLDER: 'Share progress or a quick update…',
+    SUBMIT: 'Save status',
+    SUCCESS_TITLE: 'Status saved',
+    SUCCESS_MESSAGE: 'Your update has been added to the task diary.',
+    ERROR_TITLE: 'Failed to add status',
+    MAX_LENGTH: 2000,
+  },
+  COMPLETE: {
+    TITLE: 'Mark as complete',
+    MESSAGE: 'Add the final outcome so the plan owner can see what was done.',
+    OUTCOME_LABEL: 'Final outcome',
+    OUTCOME_PLACEHOLDER: 'Describe what was accomplished and any relevant details…',
+    CONFIRM: 'Mark complete',
+    CANCEL: 'Cancel',
+    ERROR_TITLE: 'Failed to complete task',
+    MAX_LENGTH: 2000,
+  },
+  RELEASE: {
+    TITLE: 'Release task',
+    MESSAGE: 'Please share why you’re releasing this task so the plan owner is informed.',
+    REASON_LABEL: 'Reason for releasing',
+    REASON_PLACEHOLDER: 'e.g. schedule change, no longer able to help…',
+    CONFIRM: 'Release task',
+    CANCEL: 'Keep task',
+    ERROR_TITLE: 'Failed to release task',
+    MAX_LENGTH: 2000,
+  },
+  DIARY: {
+    TITLE: 'Task diary',
+    EMPTY: 'No updates yet. Add a status to keep the plan owner in the loop.',
+    EVENT_TYPES: {
+      status_update: 'Status update',
+      completed: 'Completed',
+      released: 'Released',
+    } as const,
+  },
+} as const;
+
 /** Plan approval flow: processing state and success/error copy (single responsibility: UI copy) */
 export const PLAN_APPROVAL = {
   PROCESSING: {

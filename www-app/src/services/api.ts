@@ -312,6 +312,38 @@ class ApiClient {
   async deleteCareTask(taskId: string): Promise<void> {
     await this.client.delete(`/tasks/${taskId}`);
   }
+
+  /**
+   * Add a status update to a claimed task (task diary).
+   */
+  async addTaskStatus(taskId: string, content: string): Promise<any> {
+    const response = await this.client.post(`/tasks/${taskId}/events`, { content });
+    return response.data;
+  }
+
+  /**
+   * Get task diary (events) for a task. Plan owner or task owner.
+   */
+  async getTaskEvents(taskId: string): Promise<any[]> {
+    const response = await this.client.get(`/tasks/${taskId}/events`);
+    return response.data;
+  }
+
+  /**
+   * Complete a task with final outcome (recorded in task diary).
+   */
+  async completeTaskWithOutcome(taskId: string, outcome: string): Promise<any> {
+    const response = await this.client.post(`/tasks/${taskId}/complete`, { outcome });
+    return response.data;
+  }
+
+  /**
+   * Release a task with reason (recorded in task diary).
+   */
+  async releaseTaskWithReason(taskId: string, reason: string): Promise<any> {
+    const response = await this.client.post(`/tasks/${taskId}/release`, { reason });
+    return response.data;
+  }
 }
 
 /**

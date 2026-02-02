@@ -119,6 +119,53 @@
                     {{ claimingTaskId === task.id ? 'Claiming...' : 'Claim Task' }}
                   </button>
                 </div>
+                <!-- Task diary (plan owner follow-up) -->
+                <div v-if="isPlanOwner(plan)" class="task-diary-section">
+                  <button
+                    type="button"
+                    class="task-diary-toggle"
+                    :aria-expanded="expandedDiaryTaskId === task.id"
+                    @click="toggleDiary(task.id)"
+                  >
+                    <BaseIcon
+                      :path="expandedDiaryTaskId === task.id ? mdiChevronDown : mdiChevronRight"
+                      :size="20"
+                    />
+                    <span>{{ TASK_DIARY.DIARY.TITLE }}</span>
+                    <span v-if="taskEventsByTaskId[task.id]?.length" class="task-diary-count">
+                      ({{ taskEventsByTaskId[task.id].length }})
+                    </span>
+                  </button>
+                  <Transition name="diary">
+                    <div v-if="expandedDiaryTaskId === task.id" class="task-diary-panel">
+                      <div v-if="diaryLoadingTaskId === task.id" class="task-diary-loading">
+                        <div class="spinner-sm"></div>
+                        <span>Loading diary...</span>
+                      </div>
+                      <template v-else>
+                        <p v-if="!taskEventsByTaskId[task.id]?.length" class="task-diary-empty">
+                          {{ TASK_DIARY.DIARY.EMPTY }}
+                        </p>
+                        <ul v-else class="task-diary-list">
+                          <li
+                            v-for="ev in taskEventsByTaskId[task.id]"
+                            :key="ev.id"
+                            class="task-diary-item"
+                            :class="`task-diary-item--${ev.event_type}`"
+                          >
+                            <span class="task-diary-item__type">
+                              {{ TASK_DIARY.DIARY.EVENT_TYPES[ev.event_type] }}
+                            </span>
+                            <p class="task-diary-item__content">{{ ev.content }}</p>
+                            <time class="task-diary-item__time" :datetime="ev.created_at">
+                              {{ formatEventTime(ev.created_at) }}
+                            </time>
+                          </li>
+                        </ul>
+                      </template>
+                    </div>
+                  </Transition>
+                </div>
               </div>
             </div>
             <div v-else class="no-tasks">
@@ -191,11 +238,13 @@ import { useAuthStore } from '@/stores/authStore';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
-import { PLAN_ACTIONS } from '@/constants';
+import { PLAN_ACTIONS, TASK_DIARY } from '@/constants';
+import type { CareTaskEvent } from '@/types';
 import {
   mdiFileDocumentMultipleOutline,
   mdiChevronDown,
   mdiChevronUp,
+  mdiChevronRight,
   mdiAccountCheck,
   mdiAccountPlus,
   mdiCheckCircle,
@@ -248,6 +297,10 @@ const successDialogMessage = ref('');
 const errorDialogTitle = ref('Error');
 const errorDialogMessage = ref('');
 const pendingDeletePlanId = ref<string | null>(null);
+
+const expandedDiaryTaskId = ref<string | null>(null);
+const diaryLoadingTaskId = ref<string | null>(null);
+const taskEventsByTaskId = ref<Record<string, CareTaskEvent[]>>({});
 
 onMounted(async () => {
   await authStore.initialize();
@@ -414,18 +467,55 @@ async function handleClaimTask(planId: string, taskId: string) {
   claimingTaskId.value = taskId;
   try {
     await api.post(`/tasks/${taskId}/claim`);
-    
-    // Refresh the tasks for this plan - UI will update to show "Claimed" status
+
     const tasks = await api.getCarePlanTasks(planId);
     planTasks.value[planId] = tasks;
-  } catch (err: any) {
-    // Show error message only on failure
+  } catch (err: unknown) {
     errorDialogTitle.value = 'Failed to Claim Task';
-    errorDialogMessage.value = err.message || 'Failed to claim task. Please try again.';
+    errorDialogMessage.value = err instanceof Error ? err.message : 'Failed to claim task. Please try again.';
     errorDialog.value?.open();
   } finally {
     claimingTaskId.value = null;
   }
+}
+
+async function toggleDiary(taskId: string) {
+  if (expandedDiaryTaskId.value === taskId) {
+    expandedDiaryTaskId.value = null;
+    return;
+  }
+  expandedDiaryTaskId.value = taskId;
+  await loadDiaryForTask(taskId);
+}
+
+async function loadDiaryForTask(taskId: string) {
+  diaryLoadingTaskId.value = taskId;
+  try {
+    const events = await api.getTaskEvents(taskId);
+    taskEventsByTaskId.value = { ...taskEventsByTaskId.value, [taskId]: events };
+  } catch {
+    taskEventsByTaskId.value = { ...taskEventsByTaskId.value, [taskId]: [] };
+  } finally {
+    diaryLoadingTaskId.value = null;
+  }
+}
+
+function formatEventTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (sameDay) {
+    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 </script>
 
@@ -830,6 +920,120 @@ async function handleClaimTask(planId: string, taskId: string) {
 .claim-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Task diary (plan owner follow-up) */
+.task-diary-section {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.task-diary-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-sm) 0;
+  background: none;
+  border: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+
+.task-diary-toggle:hover {
+  color: var(--color-primary);
+}
+
+.task-diary-count {
+  margin-left: var(--spacing-xs);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-normal);
+}
+
+.task-diary-panel {
+  padding: var(--spacing-md) 0 var(--spacing-md) var(--spacing-xl);
+  border-left: 2px solid var(--color-border);
+  margin-left: var(--spacing-sm);
+}
+
+.task-diary-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.task-diary-empty {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
+.task-diary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.task-diary-item {
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.task-diary-item:last-child {
+  border-bottom: none;
+}
+
+.task-diary-item__type {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.task-diary-item--status_update .task-diary-item__type {
+  color: var(--color-info);
+}
+
+.task-diary-item--completed .task-diary-item__type {
+  color: var(--color-success);
+}
+
+.task-diary-item--released .task-diary-item__type {
+  color: var(--color-warning);
+}
+
+.task-diary-item__content {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  margin: 0 0 var(--spacing-xs);
+}
+
+.task-diary-item__time {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.diary-enter-active,
+.diary-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.diary-enter-from,
+.diary-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 .no-tasks {

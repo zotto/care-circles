@@ -42,47 +42,127 @@
           <div class="task-actions">
             <button
               v-if="task.status === 'claimed'"
-              @click="openCompleteDialog(task)"
-              class="action-button primary"
+              type="button"
+              @click="openAddStatusDialog(task)"
+              class="action-button add-status"
             >
-              Mark Complete
+              {{ TASK_DIARY.ADD_STATUS.LABEL }}
             </button>
             <button
               v-if="task.status === 'claimed'"
+              type="button"
+              @click="openCompleteDialog(task)"
+              class="action-button primary"
+            >
+              {{ TASK_DIARY.COMPLETE.CONFIRM }}
+            </button>
+            <button
+              v-if="task.status === 'claimed'"
+              type="button"
               @click="openReleaseDialog(task)"
               class="action-button secondary"
             >
-              Release Task
+              {{ TASK_DIARY.RELEASE.CONFIRM }}
             </button>
+          </div>
+
+          <!-- Task diary (expandable) -->
+          <div class="task-diary-section">
+            <button
+              type="button"
+              class="task-diary-toggle"
+              :aria-expanded="expandedDiaryTaskId === task.id"
+              @click="toggleDiary(task.id)"
+            >
+              <BaseIcon
+                :path="expandedDiaryTaskId === task.id ? mdiChevronDown : mdiChevronRight"
+                :size="20"
+              />
+              <span>{{ TASK_DIARY.DIARY.TITLE }}</span>
+              <span v-if="taskEventsByTaskId[task.id]?.length" class="task-diary-count">
+                ({{ taskEventsByTaskId[task.id].length }})
+              </span>
+            </button>
+            <Transition name="diary">
+              <div v-if="expandedDiaryTaskId === task.id" class="task-diary-panel">
+                <div v-if="diaryLoadingTaskId === task.id" class="task-diary-loading">
+                  <div class="spinner-sm"></div>
+                  <span>Loading diary...</span>
+                </div>
+                <template v-else>
+                  <p v-if="!taskEventsByTaskId[task.id]?.length" class="task-diary-empty">
+                    {{ TASK_DIARY.DIARY.EMPTY }}
+                  </p>
+                  <ul v-else class="task-diary-list">
+                    <li
+                      v-for="ev in taskEventsByTaskId[task.id]"
+                      :key="ev.id"
+                      class="task-diary-item"
+                      :class="`task-diary-item--${ev.event_type}`"
+                    >
+                      <span class="task-diary-item__type">
+                        {{ TASK_DIARY.DIARY.EVENT_TYPES[ev.event_type] }}
+                      </span>
+                      <p class="task-diary-item__content">{{ ev.content }}</p>
+                      <time class="task-diary-item__time" :datetime="ev.created_at">
+                        {{ formatEventTime(ev.created_at) }}
+                      </time>
+                    </li>
+                  </ul>
+                </template>
+              </div>
+            </Transition>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Release Confirmation Dialog -->
-    <ConfirmDialog
-      ref="releaseDialog"
-      title="Release Task?"
-      message="Are you sure you want to release this task? It will become available for others to claim."
-      confirm-text="Release Task"
-      cancel-text="Keep Task"
-      variant="warning"
-      :icon="mdiAlertCircleOutline"
-      @confirm="confirmRelease"
-      @cancel="cancelRelease"
+    <!-- Add status dialog -->
+    <TaskDiaryActionDialog
+      ref="addStatusDialog"
+      :title="TASK_DIARY.ADD_STATUS.LABEL"
+      :message="TASK_DIARY.ADD_STATUS.MESSAGE"
+      :field-label="''"
+      :field-placeholder="TASK_DIARY.ADD_STATUS.PLACEHOLDER"
+      :confirm-text="TASK_DIARY.ADD_STATUS.SUBMIT"
+      :cancel-text="'Cancel'"
+      variant="primary"
+      :icon="mdiNoteTextOutline"
+      :max-length="TASK_DIARY.ADD_STATUS.MAX_LENGTH"
+      @confirm="confirmAddStatus"
+      @cancel="cancelAddStatus"
     />
 
-    <!-- Complete Confirmation Dialog -->
-    <ConfirmDialog
+    <!-- Complete task dialog (outcome required) -->
+    <TaskDiaryActionDialog
       ref="completeDialog"
-      title="Mark as Complete?"
-      message="Are you sure you want to mark this task as complete?"
-      confirm-text="Mark Complete"
-      cancel-text="Cancel"
+      :title="TASK_DIARY.COMPLETE.TITLE"
+      :message="TASK_DIARY.COMPLETE.MESSAGE"
+      :field-label="TASK_DIARY.COMPLETE.OUTCOME_LABEL"
+      :field-placeholder="TASK_DIARY.COMPLETE.OUTCOME_PLACEHOLDER"
+      :confirm-text="TASK_DIARY.COMPLETE.CONFIRM"
+      :cancel-text="TASK_DIARY.COMPLETE.CANCEL"
       variant="primary"
       :icon="mdiCheckCircleOutline"
+      :max-length="TASK_DIARY.COMPLETE.MAX_LENGTH"
       @confirm="confirmComplete"
       @cancel="cancelComplete"
+    />
+
+    <!-- Release task dialog (reason required) -->
+    <TaskDiaryActionDialog
+      ref="releaseDialog"
+      :title="TASK_DIARY.RELEASE.TITLE"
+      :message="TASK_DIARY.RELEASE.MESSAGE"
+      :field-label="TASK_DIARY.RELEASE.REASON_LABEL"
+      :field-placeholder="TASK_DIARY.RELEASE.REASON_PLACEHOLDER"
+      :confirm-text="TASK_DIARY.RELEASE.CONFIRM"
+      :cancel-text="TASK_DIARY.RELEASE.CANCEL"
+      variant="warning"
+      :icon="mdiAlertCircleOutline"
+      :max-length="TASK_DIARY.RELEASE.MAX_LENGTH"
+      @confirm="confirmRelease"
+      @cancel="cancelRelease"
     />
 
     <!-- Error Dialog -->
@@ -103,18 +183,33 @@
 import { ref, onMounted, computed } from 'vue';
 import { useTaskStore } from '@/stores/taskStore';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
-import { mdiAlertCircleOutline, mdiCheckCircleOutline } from '@mdi/js';
+import TaskDiaryActionDialog from '@/components/organisms/TaskDiaryActionDialog.vue';
+import BaseIcon from '@/components/atoms/BaseIcon.vue';
+import { TASK_DIARY } from '@/constants';
+import type { CareTaskEvent } from '@/types';
+import {
+  mdiAlertCircleOutline,
+  mdiCheckCircleOutline,
+  mdiNoteTextOutline,
+  mdiChevronRight,
+  mdiChevronDown,
+} from '@mdi/js';
 
 const taskStore = useTaskStore();
 
 const isLoading = ref(false);
 const error = ref<string | null>(null);
-const releaseDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
-const completeDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
+const addStatusDialog = ref<InstanceType<typeof TaskDiaryActionDialog> | null>(null);
+const releaseDialog = ref<InstanceType<typeof TaskDiaryActionDialog> | null>(null);
+const completeDialog = ref<InstanceType<typeof TaskDiaryActionDialog> | null>(null);
 const errorDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
 const pendingTaskId = ref<string | null>(null);
 const errorDialogTitle = ref('Error');
 const errorDialogMessage = ref('An error occurred');
+
+const expandedDiaryTaskId = ref<string | null>(null);
+const diaryLoadingTaskId = ref<string | null>(null);
+const taskEventsByTaskId = ref<Record<string, CareTaskEvent[]>>({});
 
 const myTasks = computed(() => taskStore.myTasks);
 
@@ -128,37 +223,73 @@ async function loadTasks() {
 
   try {
     await taskStore.fetchMyTasks();
-  } catch (err: any) {
-    error.value = err.message || 'Failed to load tasks';
+  } catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Failed to load tasks';
   } finally {
     isLoading.value = false;
   }
 }
 
-function openCompleteDialog(task: any) {
+function openAddStatusDialog(task: { id: string }) {
+  pendingTaskId.value = task.id;
+  addStatusDialog.value?.open();
+}
+
+function openCompleteDialog(task: { id: string }) {
   pendingTaskId.value = task.id;
   completeDialog.value?.open();
 }
 
-function openReleaseDialog(task: any) {
+function openReleaseDialog(task: { id: string }) {
   pendingTaskId.value = task.id;
   releaseDialog.value?.open();
 }
 
-async function confirmComplete() {
+async function confirmAddStatus(value: string) {
+  if (!pendingTaskId.value || !addStatusDialog.value) return;
+
+  addStatusDialog.value.setLoading(true);
+
+  try {
+    await taskStore.addTaskStatus(pendingTaskId.value, value);
+    addStatusDialog.value.setLoading(false);
+    addStatusDialog.value.close();
+    const taskId = pendingTaskId.value;
+    pendingTaskId.value = null;
+    if (expandedDiaryTaskId.value === taskId) {
+      await loadDiaryForTask(taskId);
+    }
+  } catch (err: unknown) {
+    addStatusDialog.value.setLoading(false);
+    addStatusDialog.value.close();
+    showError(
+      TASK_DIARY.ADD_STATUS.ERROR_TITLE,
+      err instanceof Error ? err.message : 'Failed to add status. Please try again.'
+    );
+  }
+}
+
+function cancelAddStatus() {
+  pendingTaskId.value = null;
+}
+
+async function confirmComplete(value: string) {
   if (!pendingTaskId.value || !completeDialog.value) return;
 
   completeDialog.value.setLoading(true);
-  
+
   try {
-    await taskStore.completeTask(pendingTaskId.value);
+    await taskStore.completeTask(pendingTaskId.value, value);
     completeDialog.value.setLoading(false);
     completeDialog.value.close();
     pendingTaskId.value = null;
-  } catch (err: any) {
+  } catch (err: unknown) {
     completeDialog.value.setLoading(false);
     completeDialog.value.close();
-    showError('Failed to Complete Task', err.message || 'Failed to complete task. Please try again.');
+    showError(
+      TASK_DIARY.COMPLETE.ERROR_TITLE,
+      err instanceof Error ? err.message : 'Failed to complete task. Please try again.'
+    );
   }
 }
 
@@ -166,25 +297,67 @@ function cancelComplete() {
   pendingTaskId.value = null;
 }
 
-async function confirmRelease() {
+async function confirmRelease(value: string) {
   if (!pendingTaskId.value || !releaseDialog.value) return;
 
   releaseDialog.value.setLoading(true);
-  
+
   try {
-    await taskStore.releaseTask(pendingTaskId.value);
+    await taskStore.releaseTask(pendingTaskId.value, value);
     releaseDialog.value.setLoading(false);
     releaseDialog.value.close();
     pendingTaskId.value = null;
-  } catch (err: any) {
+  } catch (err: unknown) {
     releaseDialog.value.setLoading(false);
     releaseDialog.value.close();
-    showError('Failed to Release Task', err.message || 'Failed to release task. Please try again.');
+    showError(
+      TASK_DIARY.RELEASE.ERROR_TITLE,
+      err instanceof Error ? err.message : 'Failed to release task. Please try again.'
+    );
   }
 }
 
 function cancelRelease() {
   pendingTaskId.value = null;
+}
+
+async function toggleDiary(taskId: string) {
+  if (expandedDiaryTaskId.value === taskId) {
+    expandedDiaryTaskId.value = null;
+    return;
+  }
+  expandedDiaryTaskId.value = taskId;
+  await loadDiaryForTask(taskId);
+}
+
+async function loadDiaryForTask(taskId: string) {
+  diaryLoadingTaskId.value = taskId;
+  try {
+    const events = await taskStore.fetchTaskEvents(taskId);
+    taskEventsByTaskId.value = { ...taskEventsByTaskId.value, [taskId]: events };
+  } catch {
+    taskEventsByTaskId.value = { ...taskEventsByTaskId.value, [taskId]: [] };
+  } finally {
+    diaryLoadingTaskId.value = null;
+  }
+}
+
+function formatEventTime(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameDay =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (sameDay) {
+    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 function showError(title: string, message: string) {
@@ -394,5 +567,138 @@ function closeErrorDialog() {
 
 .action-button.secondary:hover {
   background: var(--color-bg-secondary);
+}
+
+.action-button.add-status {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.action-button.add-status:hover {
+  background: var(--color-border);
+}
+
+/* Task diary */
+.task-diary-section {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.task-diary-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-sm) 0;
+  background: none;
+  border: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+
+.task-diary-toggle:hover {
+  color: var(--color-primary);
+}
+
+.task-diary-count {
+  margin-left: var(--spacing-xs);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-normal);
+}
+
+.task-diary-panel {
+  padding: var(--spacing-md) 0 var(--spacing-md) var(--spacing-xl);
+  border-left: 2px solid var(--color-border);
+  margin-left: var(--spacing-sm);
+}
+
+.task-diary-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.spinner-sm {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.task-diary-empty {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
+.task-diary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.task-diary-item {
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--color-border-light, var(--color-border));
+}
+
+.task-diary-item:last-child {
+  border-bottom: none;
+}
+
+.task-diary-item__type {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.task-diary-item--status_update .task-diary-item__type {
+  color: var(--color-info);
+}
+
+.task-diary-item--completed .task-diary-item__type {
+  color: var(--color-success);
+}
+
+.task-diary-item--released .task-diary-item__type {
+  color: var(--color-warning);
+}
+
+.task-diary-item__content {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  margin: 0 0 var(--spacing-xs);
+}
+
+.task-diary-item__time {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.diary-enter-active,
+.diary-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.diary-enter-from,
+.diary-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 </style>

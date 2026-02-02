@@ -49,6 +49,18 @@ export interface CareTask {
   created_at: string;
 }
 
+/** Task diary event type */
+export type TaskEventType = 'status_update' | 'completed' | 'released';
+
+export interface CareTaskEvent {
+  id: string;
+  care_task_id: string;
+  event_type: TaskEventType;
+  content: string;
+  created_by: string;
+  created_at: string;
+}
+
 export interface ReviewPacket {
   id: string;
   care_request_id: string;

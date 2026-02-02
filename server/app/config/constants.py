@@ -117,3 +117,17 @@ class ShareConstants:
     
     SHARE_TOKEN_LENGTH = 32
     SHARE_URL_PATH = "/shared"
+
+
+class TaskEventType:
+    """Care task event (diary) type constants"""
+    
+    STATUS_UPDATE = "status_update"
+    COMPLETED = "completed"
+    RELEASED = "released"
+
+
+class TaskEventConstants:
+    """Care task event validation constants"""
+    
+    MAX_CONTENT_LENGTH = 2000

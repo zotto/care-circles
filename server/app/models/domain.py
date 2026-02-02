@@ -14,7 +14,9 @@ from app.config.constants import (
     TaskPriority,
     TaskStatus,
     ApprovalStatus,
-    APIConstants
+    APIConstants,
+    TaskEventType,
+    TaskEventConstants,
 )
 
 
@@ -94,6 +96,35 @@ class CarePlan(BaseModel):
     approved_by: Optional[str] = Field(None, description="User ID who approved the plan")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
+
+
+class CareTaskEvent(BaseModel):
+    """
+    Single event in a task's diary (status update, completion outcome, or release reason).
+    """
+    id: str = Field(..., description="Unique identifier for the event")
+    care_task_id: str = Field(..., description="Task this event belongs to")
+    event_type: str = Field(..., description="Type: status_update, completed, or released")
+    content: str = Field(..., description="Event content (status note, outcome, or reason)")
+    created_by: str = Field(..., description="User ID who created the event")
+    created_at: datetime = Field(..., description="Event timestamp")
+
+    @field_validator("event_type")
+    @classmethod
+    def validate_event_type(cls, v: str) -> str:
+        valid = [TaskEventType.STATUS_UPDATE, TaskEventType.COMPLETED, TaskEventType.RELEASED]
+        if v not in valid:
+            raise ValueError(f"event_type must be one of: {valid}")
+        return v
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        if not v or len(v.strip()) == 0:
+            raise ValueError("Content cannot be empty")
+        if len(v) > TaskEventConstants.MAX_CONTENT_LENGTH:
+            raise ValueError(f"Content exceeds maximum length of {TaskEventConstants.MAX_CONTENT_LENGTH}")
+        return v.strip()
 
 
 class CareTask(BaseModel):

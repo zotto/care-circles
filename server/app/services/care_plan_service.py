@@ -10,6 +10,7 @@ from fastapi import HTTPException, status
 
 from supabase import Client
 from app.db.repositories.care_plan_repository import CarePlanRepository
+from app.db.repositories.care_request_repository import CareRequestRepository
 from app.db.repositories.care_task_repository import CareTaskRepository
 from app.middleware.auth import AuthUser
 from app.config.constants import PlanStatusConstants, TaskStatusConstants
@@ -23,6 +24,7 @@ class CarePlanService:
     def __init__(self, db: Client):
         self.db = db
         self.plan_repo = CarePlanRepository(db)
+        self.request_repo = CareRequestRepository(db)
         self.task_repo = CareTaskRepository(db)
     
     async def create_plan(
@@ -237,7 +239,8 @@ class CarePlanService:
         """
         Delete a care plan (creator only).
 
-        Tasks are cascade-deleted by the database.
+        Deletes the associated care request; the database cascades to remove
+        the plan, its tasks, and any jobs/needs_maps for that request.
 
         Args:
             plan_id: Plan ID
@@ -261,8 +264,12 @@ class CarePlanService:
                     detail="Only the plan creator can delete it"
                 )
 
-            self.plan_repo.delete(plan_id)
-            logger.info(f"User {user.user_id} deleted plan {plan_id}")
+            care_request_id = plan["care_request_id"]
+            self.request_repo.delete(care_request_id)
+            # DB cascade: care_requests ON DELETE CASCADE removes care_plans, then care_tasks; jobs and needs_maps also cascade
+            logger.info(
+                f"User {user.user_id} deleted plan {plan_id} and care request {care_request_id}"
+            )
 
         except HTTPException:
             raise

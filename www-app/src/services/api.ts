@@ -239,10 +239,11 @@ class ApiClient {
   }
 
   /**
-   * Approve a care plan
+   * Approve a care plan. Optional summary updates the plan name before approving.
    */
-  async approveCarePlan(planId: string): Promise<any> {
-    const response = await this.client.post(`/care-plans/${planId}/approve`);
+  async approveCarePlan(planId: string, summary?: string): Promise<any> {
+    const body = summary?.trim() ? { summary: summary.trim() } : {};
+    const response = await this.client.post(`/care-plans/${planId}/approve`, body);
     return response.data;
   }
 

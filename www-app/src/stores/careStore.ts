@@ -273,11 +273,9 @@ export const useCareStore = defineStore('care', () => {
             }))
           );
           currentPlanId.value = planResponse.plan_id;
-        } else {
-          await api.updateCarePlan(currentPlanId.value, finalPlanName);
         }
 
-        await api.approveCarePlan(currentPlanId.value!);
+        await api.approveCarePlan(currentPlanId.value!, finalPlanName);
 
         const shareResponse = await api.generateShareLink(currentPlanId.value!);
         const baseUrl = window.location.origin;

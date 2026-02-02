@@ -6,7 +6,7 @@ Handles care plan management and approval.
 
 import logging
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from app.middleware.auth import get_current_user, AuthUser
@@ -22,6 +22,11 @@ router = APIRouter()
 class PlanSummaryUpdate(BaseModel):
     """Request model for updating plan summary"""
     summary: str
+
+
+class ApprovePlanRequest(BaseModel):
+    """Optional body for approve; when summary is provided, plan name is updated before approving."""
+    summary: str | None = None
 
 
 class AddTaskToPlanRequest(BaseModel):
@@ -172,21 +177,23 @@ async def get_care_plan(
     "/care-plans/{plan_id}/approve",
     response_model=CarePlan,
     summary="Approve care plan",
-    description="Approve care plan and make tasks available (creator only)"
+    description="Approve care plan and make tasks available (creator only). Optional body summary updates plan name before approving."
 )
 async def approve_care_plan(
     plan_id: str,
-    user: AuthUser = Depends(get_current_user)
+    user: AuthUser = Depends(get_current_user),
+    body: ApprovePlanRequest | None = Body(None),
 ):
     """
-    Approve care plan (creator only)
+    Approve care plan (creator only).
     
-    Approving a plan transitions all tasks from draft to available status,
-    making them claimable by other users.
+    If body.summary is provided, the plan summary is updated before approving.
+    Approving transitions all tasks from draft to available status.
     
     Args:
         plan_id: Care plan ID
         user: Authenticated user from JWT
+        body: Optional; summary to set as plan name before approving
         
     Returns:
         CarePlan: Approved care plan
@@ -194,6 +201,11 @@ async def approve_care_plan(
     try:
         db = get_service_client()
         plan_service = CarePlanService(db)
+        
+        if body and body.summary and body.summary.strip():
+            await plan_service.update_plan_summary(
+                plan_id, user, body.summary.strip()
+            )
         
         plan = await plan_service.approve_plan(plan_id, user)
         

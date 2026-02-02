@@ -43,12 +43,15 @@
                 @click="copyPlanLink(plan.id)"
                 class="copy-link-button"
                 :class="{ 'is-copied': copiedPlanId === plan.id }"
-                :title="copiedPlanId === plan.id ? 'Link copied!' : 'Copy plan link'"
+                :title="copiedPlanId === plan.id ? 'Link copied!' : 'Copy share link to share this plan'"
               >
                 <BaseIcon 
                   :path="copiedPlanId === plan.id ? mdiCheck : mdiContentCopy" 
                   :size="16" 
                 />
+                <span class="copy-link-button__label">
+                  {{ copiedPlanId === plan.id ? 'Link copied!' : 'Share plan' }}
+                </span>
               </button>
               <span class="plan-card__status" :class="`status-${plan.status}`">
                 {{ formatStatus(plan.status) }}
@@ -265,7 +268,7 @@ async function copyPlanLink(planId: string) {
     }, 2000);
   } catch (err: any) {
     // Show error dialog
-    errorDialogTitle.value = 'Failed to Copy Link';
+    errorDialogTitle.value = 'Failed to share plan';
     errorDialogMessage.value = err.message || 'Failed to generate share link. Please try again.';
     errorDialog.value?.open();
   }
@@ -497,12 +500,12 @@ async function handleClaimTask(planId: string, taskId: string) {
 }
 
 .copy-link-button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  gap: var(--spacing-xs);
   height: 28px;
-  padding: 0;
+  padding: 0 var(--spacing-sm);
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -510,6 +513,13 @@ async function handleClaimTask(planId: string, taskId: string) {
   cursor: pointer;
   transition: all var(--transition-base);
   flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-base);
+}
+
+.copy-link-button__label {
+  white-space: nowrap;
 }
 
 .copy-link-button:hover {

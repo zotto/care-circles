@@ -16,17 +16,17 @@
             <span>AI-Powered Care Coordination</span>
           </div>
           <h1 class="hero__title">
-            Transform Caregiving Requests
-            <span class="gradient-text">Into Action Plans</span>
+            Transform Caregiving
+            <span class="gradient-text">Into Action</span>
           </h1>
           <p class="hero__subtitle">
-            Care Circles helps you coordinate care by turning unstructured needs into clear, 
-            actionable tasks. Get AI assistance to organize support for those who need it most.
+            Coordinate care by turning unstructured needs into clear, actionable tasks with AI assistance.
           </p>
           <div class="hero__actions">
             <BaseButton 
               variant="primary" 
               size="lg"
+              icon
               @click="openLoginModal"
             >
               <template #icon>
@@ -37,8 +37,12 @@
             <BaseButton 
               variant="outline" 
               size="lg"
+              icon
               @click="scrollToFeatures"
             >
+              <template #icon>
+                <BaseIcon :path="mdiChevronDown" :size="20" />
+              </template>
               Learn More
             </BaseButton>
           </div>
@@ -80,10 +84,9 @@
           :class="{ 'is-visible': featuresHeaderVisible }"
           ref="featuresHeaderRef"
         >
-          <h2 class="features__title">Everything You Need</h2>
+          <h2 class="features__title">Intelligent Care Coordination</h2>
           <p class="features__subtitle">
-            Care Circles brings together AI intelligence and human oversight to create 
-            comprehensive care coordination solutions.
+            AI intelligence combined with human oversight for comprehensive care solutions.
           </p>
         </div>
 
@@ -147,17 +150,18 @@
         >
           <h2 class="cta__title">Ready to Get Started?</h2>
           <p class="cta__subtitle">
-            Join Care Circles today and experience the future of care coordination
+            Experience the future of care coordination
           </p>
           <BaseButton 
             variant="primary" 
             size="lg"
+            icon
             @click="openLoginModal"
           >
             <template #icon>
               <BaseIcon :path="mdiLogin" :size="20" />
             </template>
-            Sign In to Get Started
+            Get Started
           </BaseButton>
         </div>
       </div>
@@ -172,14 +176,15 @@ import { useLoginModal } from '@/composables/useLoginModal';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import {
-  mdiHeartCircle,
-  mdiLogin,
-  mdiFileDocumentMultiple,
   mdiAccountMultiple,
   mdiCheckCircle,
+  mdiChevronDown,
+  mdiEyeCheck,
+  mdiFileDocumentMultiple,
+  mdiHeartCircle,
+  mdiLogin,
   mdiRobot,
   mdiShieldCheck,
-  mdiEyeCheck,
 } from '@mdi/js';
 
 const { open: openLoginModal } = useLoginModal();
@@ -358,10 +363,10 @@ onUnmounted(() => {
 /* Hero Section */
 .hero {
   position: relative;
-  min-height: 90vh;
+  min-height: 85vh;
   display: flex;
   align-items: center;
-  padding: var(--spacing-3xl) 0;
+  padding: var(--spacing-5xl) 0 var(--spacing-4xl);
   overflow: hidden;
 }
 
@@ -427,18 +432,19 @@ onUnmounted(() => {
 }
 
 .hero__title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
   font-weight: var(--font-weight-bold);
   line-height: 1.1;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
   color: var(--color-text-primary);
+  letter-spacing: -0.02em;
 }
 
 .hero__subtitle {
-  font-size: var(--font-size-xl);
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
   line-height: var(--line-height-relaxed);
   color: var(--color-text-secondary);
-  margin-bottom: var(--spacing-2xl);
+  margin-bottom: var(--spacing-3xl);
   max-width: 600px;
 }
 
@@ -596,13 +602,13 @@ onUnmounted(() => {
 
 /* Features Section */
 .features {
-  padding: var(--spacing-3xl) 0;
+  padding: var(--spacing-5xl) 0;
   background: var(--color-bg-primary);
 }
 
 .features__header {
   text-align: center;
-  margin-bottom: var(--spacing-3xl);
+  margin-bottom: var(--spacing-4xl);
   opacity: 0;
   transform: translateY(30px);
   transition: opacity 0.6s ease-out, transform 0.6s ease-out;
@@ -614,15 +620,18 @@ onUnmounted(() => {
 }
 
 .features__title {
-  font-size: clamp(2rem, 4vw, 3rem);
-  margin-bottom: var(--spacing-md);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  margin-bottom: var(--spacing-lg);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
 }
 
 .features__subtitle {
-  font-size: var(--font-size-lg);
+  font-size: clamp(1rem, 2vw, 1.25rem);
   color: var(--color-text-secondary);
   max-width: 600px;
   margin: 0 auto;
+  line-height: var(--line-height-relaxed);
 }
 
 @media (min-width: 1024px) {
@@ -634,14 +643,14 @@ onUnmounted(() => {
 .features__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--spacing-xl);
+  gap: var(--spacing-2xl);
 }
 
 .feature-card {
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-2xl);
+  border-radius: var(--radius-card);
+  padding: var(--spacing-3xl);
   text-align: center;
   transition: all var(--transition-base);
   opacity: 0;
@@ -655,7 +664,7 @@ onUnmounted(() => {
 
 .feature-card:hover {
   border-color: var(--color-primary);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-card-hover);
   transform: translateY(-4px);
 }
 
@@ -687,7 +696,7 @@ onUnmounted(() => {
 
 /* How It Works Section */
 .how-it-works {
-  padding: var(--spacing-3xl) 0;
+  padding: var(--spacing-5xl) 0;
   background: var(--color-bg-secondary);
 }
 
@@ -780,9 +789,19 @@ onUnmounted(() => {
 
 /* CTA Section */
 .cta {
-  padding: var(--spacing-3xl) 0;
+  padding: var(--spacing-5xl) 0;
   background: var(--color-primary-gradient);
   color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 .cta__content {
@@ -790,6 +809,8 @@ onUnmounted(() => {
   opacity: 0;
   transform: translateY(30px);
   transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  position: relative;
+  z-index: 1;
 }
 
 .cta__content.is-visible {
@@ -798,25 +819,28 @@ onUnmounted(() => {
 }
 
 .cta__title {
-  font-size: clamp(2rem, 4vw, 3rem);
-  margin-bottom: var(--spacing-md);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  margin-bottom: var(--spacing-lg);
   color: white;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.02em;
 }
 
 .cta__subtitle {
-  font-size: var(--font-size-lg);
-  margin-bottom: var(--spacing-2xl);
-  opacity: 0.9;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  margin-bottom: var(--spacing-3xl);
+  opacity: 0.95;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
+  line-height: var(--line-height-relaxed);
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
   .hero__container {
     grid-template-columns: 1fr;
-    gap: var(--spacing-2xl);
+    gap: var(--spacing-3xl);
   }
 
   .hero__visual {
@@ -843,6 +867,30 @@ onUnmounted(() => {
 }
 
 @media (max-width: 768px) {
+  .hero {
+    min-height: auto;
+    padding: var(--spacing-3xl) 0;
+  }
+
+  .hero__actions {
+    flex-direction: column;
+  }
+
+  .hero__actions .button {
+    width: 100%;
+  }
+
+  .features,
+  .how-it-works,
+  .cta {
+    padding: var(--spacing-3xl) 0;
+  }
+
+  .features__grid,
+  .how-it-works__steps {
+    grid-template-columns: 1fr;
+  }
+  
   .hero__visual {
     height: 500px;
     min-height: 500px;
@@ -859,7 +907,7 @@ onUnmounted(() => {
     transform: none !important;
     width: 100%;
     max-width: 320px;
-    margin: 0 auto var(--spacing-md);
+    margin: 0 auto var(--spacing-lg);
     animation: none;
   }
 
@@ -867,26 +915,6 @@ onUnmounted(() => {
   .hero__card--2:hover,
   .hero__card--3:hover {
     transform: translateY(-4px) scale(1.01) !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .hero {
-    min-height: 80vh;
-    padding: var(--spacing-2xl) 0;
-  }
-
-  .hero__actions {
-    flex-direction: column;
-  }
-
-  .hero__actions .button {
-    width: 100%;
-  }
-
-  .features__grid,
-  .how-it-works__steps {
-    grid-template-columns: 1fr;
   }
 }
 </style>

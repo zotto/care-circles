@@ -36,16 +36,20 @@
                 type="submit"
                 variant="primary"
                 size="md"
+                icon
                 :disabled="authStore.isLoading || !email || authStore.isRateLimited"
                 :loading="authStore.isLoading"
                 full-width
                 class="form-submit-button"
               >
+                <template #icon>
+                  <BaseIcon :path="mdiSend" :size="18" />
+                </template>
                 <span v-if="cooldownSeconds > 0">
                   Wait {{ cooldownSeconds }}s
                 </span>
                 <span v-else>
-                  Send Magic Link
+                  Send link
                 </span>
               </BaseButton>
 
@@ -72,9 +76,13 @@
             <BaseButton
               variant="outline"
               size="md"
+              icon
               @click="emailSent = false"
             >
-              Send to different email
+              <template #icon>
+                <BaseIcon :path="mdiPencil" :size="18" />
+              </template>
+              Different email
             </BaseButton>
           </div>
         </div>
@@ -88,7 +96,7 @@ import { ref, watch, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/authStore';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
-import { mdiHeartCircle, mdiClose } from '@mdi/js';
+import { mdiClose, mdiHeartCircle, mdiPencil, mdiSend } from '@mdi/js';
 
 interface Props {
   modelValue: boolean;

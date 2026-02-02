@@ -1,36 +1,36 @@
 <template>
   <div class="my-tasks-view">
-    <div class="container">
-      <div class="page-header">
-        <h1 class="page-title">My Tasks</h1>
-        <p class="page-description">Tasks you've claimed from care plans</p>
+    <div class="view-container">
+      <LoadingState v-if="isLoading" text="Loading your tasks..." />
+
+      <ErrorState v-else-if="error" :message="error" :icon="mdiAlertCircle">
+        <template #action>
+          <BaseButton variant="primary" icon @click="loadTasks">
+            <template #icon>
+              <BaseIcon :path="mdiRefresh" :size="18" />
+            </template>
+            Try Again
+          </BaseButton>
+        </template>
+      </ErrorState>
+
+      <!-- Empty state -->
+      <div v-else-if="myTasks.length === 0" class="empty-state-centered">
+        <EmptyCard
+          :icon="mdiClipboardCheckOutline"
+          title="No Tasks Yet"
+          description="Browse shared care plans to find tasks where you can make a difference and help others."
+        />
       </div>
 
-      <div v-if="isLoading" class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading your tasks...</p>
-      </div>
-
-      <div v-else-if="error" class="error-state">
-        <p class="error-message">{{ error }}</p>
-        <button @click="loadTasks" class="retry-button">Try Again</button>
-      </div>
-
-      <div v-else-if="myTasks.length === 0" class="empty-state">
-        <p>You haven't claimed any tasks yet.</p>
-        <p class="empty-hint">Browse shared plans to find tasks you can help with!</p>
-      </div>
-
-      <div v-else class="tasks-list">
+      <div v-else class="tasks-grid">
         <div v-for="task in myTasks" :key="task.id" class="task-card">
           <div class="task-header">
             <span class="task-priority" :class="`priority-${task.priority}`">
               {{ task.priority.toUpperCase() }}
             </span>
-            <span class="task-status" :class="`status-${task.status}`">
-              {{ (task.status === 'claimed' || task.status === 'completed') && task.claimed_by_name
-                ? (task.status === 'completed' ? `Completed by ${task.claimed_by_name}` : `Claimed by ${task.claimed_by_name}`)
-                : task.status }}
+            <span v-if="task.status !== 'claimed'" class="task-status" :class="`status-${task.status}`">
+              {{ formatTaskStatus(task.status) }}
             </span>
           </div>
 
@@ -47,24 +47,30 @@
               type="button"
               @click="openAddStatusDialog(task)"
               class="action-button add-status"
+              :title="TASK_DIARY.ADD_STATUS.LABEL"
             >
-              {{ TASK_DIARY.ADD_STATUS.LABEL }}
+              <BaseIcon :path="mdiNoteTextOutline" :size="18" class="action-button__icon" />
+              <span class="action-button__text">Status</span>
             </button>
             <button
               v-if="task.status === 'claimed'"
               type="button"
               @click="openCompleteDialog(task)"
               class="action-button primary"
+              :title="TASK_DIARY.COMPLETE.CONFIRM"
             >
-              {{ TASK_DIARY.COMPLETE.CONFIRM }}
+              <BaseIcon :path="mdiCheckCircleOutline" :size="18" class="action-button__icon" />
+              <span class="action-button__text">Complete</span>
             </button>
             <button
               v-if="task.status === 'claimed'"
               type="button"
               @click="openReleaseDialog(task)"
               class="action-button secondary"
+              :title="TASK_DIARY.RELEASE.CONFIRM"
             >
-              {{ TASK_DIARY.RELEASE.CONFIRM }}
+              <BaseIcon :path="mdiAlertCircleOutline" :size="18" class="action-button__icon" />
+              <span class="action-button__text">Release</span>
             </button>
           </div>
 
@@ -130,6 +136,7 @@
       :cancel-text="'Cancel'"
       variant="primary"
       :icon="mdiNoteTextOutline"
+      :confirm-icon="mdiContentSave"
       :max-length="TASK_DIARY.ADD_STATUS.MAX_LENGTH"
       @confirm="confirmAddStatus"
       @cancel="cancelAddStatus"
@@ -160,7 +167,7 @@
       :field-placeholder="TASK_DIARY.RELEASE.REASON_PLACEHOLDER"
       :confirm-text="TASK_DIARY.RELEASE.CONFIRM"
       :cancel-text="TASK_DIARY.RELEASE.CANCEL"
-      variant="warning"
+      variant="danger"
       :icon="mdiAlertCircleOutline"
       :max-length="TASK_DIARY.RELEASE.MAX_LENGTH"
       @confirm="confirmRelease"
@@ -184,17 +191,26 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useTaskStore } from '@/stores/taskStore';
+import BaseButton from '@/components/atoms/BaseButton.vue';
+import BaseIcon from '@/components/atoms/BaseIcon.vue';
+import LoadingState from '@/components/atoms/LoadingState.vue';
+import EmptyCard from '@/components/atoms/EmptyCard.vue';
+import ErrorState from '@/components/atoms/ErrorState.vue';
+import LoadingSpinner from '@/components/atoms/LoadingSpinner.vue';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import TaskDiaryActionDialog from '@/components/organisms/TaskDiaryActionDialog.vue';
-import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import { TASK_DIARY } from '@/constants';
 import type { CareTaskEvent } from '@/types';
 import {
+  mdiAlertCircle,
   mdiAlertCircleOutline,
   mdiCheckCircleOutline,
-  mdiNoteTextOutline,
-  mdiChevronRight,
   mdiChevronDown,
+  mdiChevronRight,
+  mdiClipboardCheckOutline,
+  mdiContentSave,
+  mdiNoteTextOutline,
+  mdiRefresh,
 } from '@mdi/js';
 
 const taskStore = useTaskStore();
@@ -349,6 +365,16 @@ function getDiaryEventTypeLabel(eventType: string): string {
   return labels[eventType] ?? eventType;
 }
 
+function formatTaskStatus(status: string): string {
+  const statusMap: Record<string, string> = {
+    draft: 'Draft',
+    available: 'Available',
+    claimed: 'Claimed',
+    completed: 'Completed',
+  };
+  return statusMap[status] ?? status;
+}
+
 function formatEventTime(iso: string): string {
   const d = new Date(iso);
   const now = new Date();
@@ -380,98 +406,91 @@ function closeErrorDialog() {
 
 <style scoped>
 .my-tasks-view {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--height-header));
   padding: var(--spacing-2xl) 0;
-  background: var(--color-bg-primary);
+  background: var(--color-bg-secondary);
 }
 
-.container {
-  max-width: 1000px;
+.view-container {
+  max-width: var(--container-lg);
   margin: 0 auto;
-  padding: 0 var(--spacing-lg);
+  padding: 0 var(--layout-padding-desktop);
 }
 
-@media (min-width: 1024px) {
-  .container {
-    max-width: 1100px;
+.empty-state-centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  padding: var(--spacing-4xl) 0;
+}
+
+@media (max-width: 1024px) {
+  .view-container {
+    padding: 0 var(--layout-padding-tablet);
   }
 }
 
-.page-header {
-  margin-bottom: var(--spacing-2xl);
-}
+@media (max-width: 768px) {
+  .my-tasks-view {
+    padding: var(--spacing-xl) 0;
+  }
+  
+  .view-container {
+    padding: 0 var(--layout-padding-mobile);
+  }
 
-.page-title {
-  font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-xs);
-}
+  .task-card {
+    padding: var(--spacing-lg);
+  }
 
-.page-description {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  margin: 0;
-}
+  .task-title {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-md);
+  }
 
-.loading-state,
-.error-state,
-.empty-state {
-  text-align: center;
-  padding: var(--spacing-2xl);
-}
+  .task-description {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--spacing-lg);
+  }
 
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto var(--spacing-lg);
-}
+  .task-header {
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+  }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+  .task-priority,
+  .task-status {
+    padding: 0.125rem var(--spacing-sm);
+    font-size: 10px;
+  }
+
+  .task-actions {
+    justify-content: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
   }
 }
 
-.error-message {
-  color: var(--color-danger);
-  margin-bottom: var(--spacing-lg);
-}
-
-.retry-button {
-  padding: var(--spacing-md) var(--spacing-xl);
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.empty-hint {
-  color: var(--color-text-tertiary);
-  margin-top: var(--spacing-sm);
-}
-
-.tasks-list {
+.tasks-grid {
   display: grid;
   gap: var(--spacing-lg);
 }
 
 .task-card {
-  background: white;
+  background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--shadow-card);
   transition: all var(--transition-base);
 }
 
 .task-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+  transform: translateY(-3px);
 }
 
 .task-header {
@@ -479,16 +498,17 @@ function closeErrorDialog() {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .task-priority,
 .task-status {
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-badge);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
+  letter-spacing: 0.025em;
 }
 
 .priority-high {
@@ -517,65 +537,100 @@ function closeErrorDialog() {
 }
 
 .task-title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-sm);
+  margin: 0 0 var(--spacing-lg);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.01em;
 }
 
 .task-description {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-lg);
   color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin: 0 0 var(--spacing-md);
+  line-height: var(--line-height-relaxed);
+  margin: 0 0 var(--spacing-xl);
 }
 
 .task-meta {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
 .task-category {
   display: inline-block;
-  padding: 4px 12px;
+  padding: var(--spacing-xs) var(--spacing-md);
   background: var(--color-bg-secondary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-badge);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
 }
 
 .task-actions {
   display: flex;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-lg);
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border-light);
+  flex-wrap: wrap;
 }
 
 .action-button {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-button);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
   border: none;
+  font-family: var(--font-family-base);
+}
+
+.action-button__icon {
+  flex-shrink: 0;
+}
+
+.action-button__text {
+  white-space: nowrap;
+}
+
+/* Mobile: Compact buttons */
+@media (max-width: 768px) {
+  .action-button {
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+    min-height: 36px;
+  }
 }
 
 .action-button.primary {
   background: var(--color-primary);
   color: white;
+  box-shadow: var(--shadow-button);
 }
 
 .action-button.primary:hover {
   background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .action-button.secondary {
-  background: white;
-  color: var(--color-text-secondary);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
 
 .action-button.secondary:hover {
   background: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .action-button.add-status {
@@ -585,29 +640,32 @@ function closeErrorDialog() {
 }
 
 .action-button.add-status:hover {
-  background: var(--color-border);
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 /* Task diary */
 .task-diary-section {
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-md);
-  border-top: 1px solid var(--color-border);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .task-diary-toggle {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   width: 100%;
-  padding: var(--spacing-sm) 0;
+  padding: var(--spacing-md) 0;
   background: none;
   border: none;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: color var(--transition-base);
+  transition: color var(--transition-fast);
+  font-family: var(--font-family-base);
 }
 
 .task-diary-toggle:hover {
@@ -621,32 +679,25 @@ function closeErrorDialog() {
 }
 
 .task-diary-panel {
-  padding: var(--spacing-md) 0 var(--spacing-md) var(--spacing-xl);
+  padding: var(--spacing-lg) 0 var(--spacing-md) var(--spacing-2xl);
   border-left: 2px solid var(--color-border);
-  margin-left: var(--spacing-sm);
+  margin-left: var(--spacing-md);
 }
 
 .task-diary-loading {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   font-size: var(--font-size-sm);
   color: var(--color-text-tertiary);
-}
-
-.spinner-sm {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  padding: var(--spacing-md) 0;
 }
 
 .task-diary-empty {
   font-size: var(--font-size-sm);
   color: var(--color-text-tertiary);
   margin: 0;
+  padding: var(--spacing-md) 0;
 }
 
 .task-diary-list {

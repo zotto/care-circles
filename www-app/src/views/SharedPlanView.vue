@@ -83,7 +83,7 @@
 
               <div v-if="isAuthenticated && task.status === 'available'" class="task-actions">
                 <button @click.stop="handleClaimTask(task.id)" class="claim-button">
-                  Claim Task
+                  Claim
                 </button>
               </div>
             </div>
@@ -161,7 +161,7 @@
           </div>
           <div v-if="isAuthenticated && selectedTask.status === 'available'" class="task-detail-modal__actions">
             <button @click="handleClaimTaskFromDetail(selectedTask.id)" class="claim-button">
-              Claim Task
+              Claim
             </button>
           </div>
         </div>

@@ -25,7 +25,7 @@
           <section v-if="showAIAnalysisSection && !editMode" class="care-workflow__section care-workflow__section--centered">
             <div class="section-header section-header--centered">
               <div class="section-badge" :class="{ 'is-complete': isJobComplete }">
-                <span v-if="!isJobComplete" class="section-badge__spinner"></span>
+                <LoadingSpinner v-if="!isJobComplete" size="sm" variant="white" />
                 <span v-else class="section-badge__check">✓</span>
               </div>
               <div class="section-header__content">
@@ -50,7 +50,7 @@
                   >
                     <div class="status-progress__icon">
                       <span v-if="getAgentStatus(step.agent) === 'completed'">✓</span>
-                      <span v-else-if="currentStepIndex === index" class="spinner-small"></span>
+                      <LoadingSpinner v-else-if="currentStepIndex === index" size="sm" variant="white" />
                       <span v-else>{{ index + 1 }}</span>
                     </div>
                     <div class="status-progress__content">
@@ -67,42 +67,34 @@
         <!-- Step 3: Review & Approve / Edit Plan -->
         <Transition name="section">
           <section v-if="showReviewSection" class="care-workflow__section">
-            <div class="section-header section-header--centered">
-              <div class="section-badge is-complete">
-                <span class="section-badge__check">✓</span>
-              </div>
-              <div class="section-header__content">
-                <h2 class="section-header__title">{{ editMode ? 'Edit Plan' : 'Your Care Plan' }}</h2>
-                <p class="section-header__description">
-                  {{ editMode ? 'Update plan name and tasks, then save your changes.' : 'Review and customize your personalized tasks' }}
-                </p>
-              </div>
-            </div>
-
             <!-- Edit mode: loading plan -->
-            <div v-if="editMode && !editPlanLoaded && !editPlanError" class="care-workflow__loading">
-              <div class="spinner"></div>
-              <p>Loading plan...</p>
-            </div>
-            <BaseCard v-else-if="editMode && editPlanError" class="care-plan-card error-card" variant="elevated">
-              <div class="error-card__content">
-                <BaseIcon :path="mdiAlertCircle" :size="48" class="error-card__icon" />
-                <h3 class="error-card__title">Unable to Load Plan</h3>
-                <p class="error-card__message">{{ editPlanError }}</p>
-                <BaseButton variant="outline" size="md" @click="router.push({ name: 'my-plans' })">
-                  Back to My Plans
+            <LoadingState v-if="editMode && !editPlanLoaded && !editPlanError" text="Loading plan..." compact />
+            
+            <ErrorState
+              v-else-if="editMode && editPlanError"
+              :message="editPlanError"
+              :icon="mdiAlertCircle"
+              title="Unable to Load Plan"
+              compact
+            >
+              <template #action>
+                <BaseButton variant="outline" size="md" icon @click="router.push({ name: 'my-plans' })">
+                  <template #icon>
+                    <BaseIcon :path="mdiArrowLeft" :size="18" />
+                  </template>
+                  Back
                 </BaseButton>
-              </div>
-            </BaseCard>
+              </template>
+            </ErrorState>
 
             <!-- Error State (create flow or edit loaded) -->
-            <BaseCard v-if="showPlanCard && careStore.error" class="care-plan-card error-card" variant="elevated">
-              <div class="error-card__content">
-                <BaseIcon :path="mdiAlertCircle" :size="48" class="error-card__icon" />
-                <h3 class="error-card__title">Unable to Generate Tasks</h3>
-                <p class="error-card__message">{{ careStore.error }}</p>
-              </div>
-            </BaseCard>
+            <ErrorState
+              v-if="showPlanCard && careStore.error"
+              :message="careStore.error"
+              :icon="mdiAlertCircle"
+              title="Unable to Generate Tasks"
+              compact
+            />
 
             <!-- Care Plan Card with Integrated Actions -->
             <BaseCard v-else-if="showPlanCard" class="care-plan-card" variant="elevated">
@@ -198,10 +190,13 @@
                 <BaseButton
                   variant="outline"
                   size="md"
+                  icon
                   class="care-plan-card__add-task-btn"
                   @click="handleAddTask"
                 >
-                  <BaseIcon :path="mdiPlus" :size="18" class="care-plan-card__add-task-icon" />
+                  <template #icon>
+                    <BaseIcon :path="mdiPlus" :size="18" class="care-plan-card__add-task-icon" />
+                  </template>
                   Add task
                 </BaseButton>
               </div>
@@ -217,38 +212,54 @@
                     <BaseButton
                       variant="outline"
                       size="md"
+                      icon
                       @click="handleCancelEdit"
                       :disabled="isSavingEdits"
                     >
+                      <template #icon>
+                        <BaseIcon :path="mdiClose" :size="18" />
+                      </template>
                       Cancel
                     </BaseButton>
                     <BaseButton
                       variant="primary"
                       size="md"
+                      icon
+                      :loading="isSavingEdits"
                       @click="handleSavePlanEdits"
                       :disabled="validTaskCount === 0 || !planName || planName.trim() === '' || isSavingEdits"
                     >
-                      <BaseIcon :path="mdiCheckCircle" :size="18" style="margin-right: 6px;" />
-                      {{ isSavingEdits ? 'Saving...' : 'Save changes' }}
+                      <template #icon>
+                        <BaseIcon :path="mdiCheck" :size="18" />
+                      </template>
+                      Save
                     </BaseButton>
                   </template>
                   <template v-else>
                     <BaseButton
                       variant="outline"
                       size="md"
+                      icon
                       @click="handleResetClick"
                       :disabled="careStore.isApprovingPlan"
                     >
-                      Start Over
+                      <template #icon>
+                        <BaseIcon :path="mdiRefresh" :size="18" />
+                      </template>
+                      Reset
                     </BaseButton>
                     <BaseButton
                       variant="primary"
                       size="md"
+                      icon
+                      :loading="careStore.isApprovingPlan"
                       @click="handleApprove"
                       :disabled="validTaskCount === 0 || !planName || planName.trim() === '' || careStore.isApprovingPlan"
                     >
-                      <BaseIcon :path="mdiCheckCircle" :size="18" style="margin-right: 6px;" />
-                      Approve Plan
+                      <template #icon>
+                        <BaseIcon :path="mdiCheck" :size="18" />
+                      </template>
+                      Approve
                     </BaseButton>
                   </template>
                 </div>
@@ -317,11 +328,14 @@
                 <BaseButton
                   variant="outline"
                   size="sm"
+                  icon
                   @click="copyShareUrl"
                   class="approval-modal__copy-btn"
                   :class="{ 'is-copied': isCopied }"
                 >
-                  <BaseIcon :path="isCopied ? mdiCheck : mdiContentCopy" :size="16" style="margin-right: 4px;" />
+                  <template #icon>
+                    <BaseIcon :path="isCopied ? mdiCheck : mdiContentCopy" :size="16" />
+                  </template>
                   {{ isCopied ? PLAN_APPROVAL.SHARE.COPIED_BUTTON : PLAN_APPROVAL.SHARE.COPY_BUTTON }}
                 </BaseButton>
               </div>
@@ -331,9 +345,13 @@
               <BaseButton
                 variant="primary"
                 size="lg"
+                icon
                 @click="handleCloseModal"
                 full-width
               >
+                <template #icon>
+                  <BaseIcon :path="mdiCheck" :size="20" />
+                </template>
                 {{ PLAN_APPROVAL.ACTIONS.DONE }}
               </BaseButton>
             </div>
@@ -358,16 +376,24 @@
               <BaseButton
                 variant="outline"
                 size="md"
+                icon
                 @click="handleCloseDeleteModal"
               >
+                <template #icon>
+                  <BaseIcon :path="mdiClose" :size="18" />
+                </template>
                 Cancel
               </BaseButton>
               <BaseButton
                 variant="danger"
                 size="md"
+                icon
                 @click="confirmDeleteTask"
               >
-                Remove Task
+                <template #icon>
+                  <BaseIcon :path="mdiDeleteOutline" :size="18" />
+                </template>
+                Remove
               </BaseButton>
             </div>
           </div>
@@ -391,16 +417,24 @@
               <BaseButton
                 variant="outline"
                 size="md"
+                icon
                 @click="handleCloseResetModal"
               >
+                <template #icon>
+                  <BaseIcon :path="mdiClose" :size="18" />
+                </template>
                 Cancel
               </BaseButton>
               <BaseButton
                 variant="danger"
                 size="md"
+                icon
                 @click="confirmReset"
               >
-                Start Over
+                <template #icon>
+                  <BaseIcon :path="mdiRefresh" :size="18" />
+                </template>
+                Reset
               </BaseButton>
             </div>
           </div>
@@ -432,6 +466,9 @@ import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import BaseBadge from '@/components/atoms/BaseBadge.vue';
 import BaseInput from '@/components/atoms/BaseInput.vue';
 import BaseTextArea from '@/components/atoms/BaseTextArea.vue';
+import LoadingState from '@/components/atoms/LoadingState.vue';
+import LoadingSpinner from '@/components/atoms/LoadingSpinner.vue';
+import ErrorState from '@/components/atoms/ErrorState.vue';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import { useCareStore } from '@/stores/careStore';
 import { api } from '@/services/api';
@@ -444,14 +481,17 @@ import {
 
 // Icons
 import {
-  mdiDelete,
-  mdiPlus,
-  mdiCheckCircle,
-  mdiInformationOutline,
   mdiAlertCircle,
-  mdiChevronDown,
-  mdiContentCopy,
+  mdiArrowLeft,
   mdiCheck,
+  mdiChevronDown,
+  mdiClose,
+  mdiContentCopy,
+  mdiDelete,
+  mdiDeleteOutline,
+  mdiInformationOutline,
+  mdiPlus,
+  mdiRefresh,
 } from '@mdi/js';
 
 const route = useRoute();
@@ -484,6 +524,11 @@ const currentStepIndex = computed(() => {
   if (!careStore.activeJob) return -1;
   
   const currentAgent = careStore.activeJob.current_agent;
+  const status = careStore.activeJob.status;
+  // When job is running but current_agent not yet set, show first step as active so loading is visible (mobile + desktop)
+  if (!currentAgent && (status === 'queued' || status === 'running')) {
+    return 0;
+  }
   if (!currentAgent) return -1;
   
   // Find the index based on current agent
@@ -814,15 +859,15 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
 <style scoped>
 .care-workflow {
-  min-height: 100svh;
-  padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+  min-height: calc(100vh - var(--height-header));
+  padding: var(--spacing-2xl) 0 var(--spacing-4xl);
   position: relative;
   box-sizing: border-box;
   background: linear-gradient(to bottom, var(--color-bg-secondary) 0%, var(--color-bg-primary) 100%);
 }
 
 .care-workflow--focused {
-  padding: var(--spacing-lg) 0;
+  padding: var(--spacing-xl) 0;
 }
 
 .care-workflow::before {
@@ -946,25 +991,39 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
 .section-badge {
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-full);
-  background: var(--color-bg-primary);
-  border: 2px solid var(--color-border);
+  background: var(--color-primary);
+  border: 3px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text-secondary);
+  color: white;
   transition: all var(--transition-base);
   position: relative;
+  box-shadow: var(--shadow-sm);
 }
 
 .section-badge.is-complete {
   background: var(--color-success);
   border-color: var(--color-success);
   color: white;
+  animation: successPop 0.5s ease-out;
+}
+
+@keyframes successPop {
+  0% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .section-badge__number {
@@ -982,7 +1041,22 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 }
 
 .section-badge__check {
-  font-size: 1.5rem;
+  font-size: var(--font-size-2xl);
+  animation: checkPop 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes spin {
@@ -1036,14 +1110,56 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 .status-progress__step {
   display: flex;
   align-items: flex-start;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
   border-radius: var(--radius-lg);
   transition: all var(--transition-base);
+  opacity: 0;
+  transform: translateZ(0) translateX(-30px);
+  animation: slideInLeft 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  /* Keep slide-in animation running on mobile (GPU layer) */
+  will-change: transform, opacity;
+}
+
+.status-progress__step:nth-child(1) {
+  animation-delay: 0.15s;
+}
+
+.status-progress__step:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.status-progress__step:nth-child(3) {
+  animation-delay: 0.45s;
+}
+
+.status-progress__step:nth-child(4) {
+  animation-delay: 0.6s;
+}
+
+.status-progress__step:nth-child(5) {
+  animation-delay: 0.75s;
+}
+
+.status-progress__step:nth-child(6) {
+  animation-delay: 0.9s;
+}
+
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateZ(0) translateX(-30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateZ(0) translateX(0);
+  }
 }
 
 .status-progress__step.is-active {
   background: var(--color-primary-subtle);
+  border: 1px solid var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .status-progress__step.is-complete {
@@ -1052,8 +1168,8 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
 .status-progress__icon {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-full);
   background: var(--color-bg-tertiary);
   border: 2px solid var(--color-border);
@@ -1061,7 +1177,7 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   align-items: center;
   justify-content: center;
   font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   color: var(--color-text-secondary);
   transition: all var(--transition-base);
 }
@@ -1070,6 +1186,21 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: white;
+  box-shadow: 0 0 0 4px var(--color-primary-subtle);
+  animation: pulse 2s ease-in-out infinite;
+  /* Keep animation running on mobile (GPU layer) */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: translateZ(0) scale(1);
+  }
+  50% {
+    transform: translateZ(0) scale(1.05);
+  }
 }
 
 .status-progress__step.is-complete .status-progress__icon {
@@ -1113,17 +1244,17 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 }
 
 .status-progress__title {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
-  margin: 0 0 2px;
+  margin: 0 0 var(--spacing-xs);
 }
 
 .status-progress__description {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   margin: 0;
-  line-height: 1.4;
+  line-height: var(--line-height-relaxed);
 }
 
 .status-card__meta {
@@ -1136,51 +1267,40 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 
 /* Care Plan Card */
 .care-plan-card {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   width: 100%;
   border: none;
   box-shadow: var(--shadow-lg);
   font-family: var(--font-family-base);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-2xl);
+}
+
+.care-plan-card__plan-name {
+  padding: var(--spacing-2xl) var(--spacing-2xl) 0;
 }
 
 .care-plan-card__tasks {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-2xl);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-lg);
 }
 
-/* Task Item - Compact Vertical Design */
+/* Task Item - Modern Design */
 .task-item {
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-xl);
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   transition: all var(--transition-base);
-  animation: slideInUp 0.4s ease-out backwards;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: taskSlideIn 0.4s ease-out forwards;
 }
 
-.task-item .task-item__title {
-  margin-bottom: 2px;
-}
-
-.task-item .task-item__description {
-  margin-top: 2px;
-}
-
-@keyframes slideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
+@keyframes taskSlideIn {
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1188,23 +1308,23 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
 }
 
 .task-item:hover {
-  border-color: var(--color-primary-light);
-  box-shadow: var(--shadow-sm);
-  background: var(--color-bg-primary);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .task-item__header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-xs);
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
 }
 
 .task-item__badges {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
   flex: 1;
 }
 
@@ -1372,6 +1492,13 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
+}
+
+@media (max-width: 768px) {
+  .care-plan-card__add-task-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .care-plan-card__add-task-icon {

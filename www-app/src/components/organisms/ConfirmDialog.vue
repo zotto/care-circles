@@ -21,19 +21,28 @@
                 v-if="cancelText"
                 variant="outline"
                 size="md"
+                icon
                 @click="handleCancel"
                 :disabled="isLoading"
               >
+                <template #icon>
+                  <BaseIcon :path="effectiveCancelIcon" :size="18" />
+                </template>
                 {{ cancelText }}
               </BaseButton>
               <BaseButton
                 :variant="variant === 'danger' ? 'danger' : 'primary'"
                 size="md"
+                icon
+                :loading="isLoading"
                 @click="handleConfirm"
                 :disabled="isLoading"
                 class="modal-actions__confirm"
               >
-                {{ isLoading ? loadingText : confirmText }}
+                <template #icon>
+                  <BaseIcon :path="effectiveConfirmIcon" :size="18" />
+                </template>
+                {{ confirmText }}
               </BaseButton>
             </div>
           </div>
@@ -44,9 +53,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
+import { mdiClose, mdiCheck } from '@mdi/js';
 
 interface Props {
   title?: string;
@@ -56,6 +66,8 @@ interface Props {
   loadingText?: string;
   variant?: 'primary' | 'danger' | 'warning';
   icon?: string;
+  confirmIcon?: string;
+  cancelIcon?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -66,7 +78,12 @@ const props = withDefaults(defineProps<Props>(), {
   loadingText: 'Processing...',
   variant: 'primary',
   icon: undefined,
+  confirmIcon: undefined,
+  cancelIcon: undefined,
 });
+
+const effectiveCancelIcon = computed(() => props.cancelIcon ?? mdiClose);
+const effectiveConfirmIcon = computed(() => props.confirmIcon ?? mdiCheck);
 
 const emit = defineEmits<{
   confirm: [];

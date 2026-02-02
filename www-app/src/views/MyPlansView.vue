@@ -1,39 +1,58 @@
 <template>
   <div class="my-plans-view">
-    <div class="container">
-      <div class="page-header">
-        <h1 class="page-title">My Plans</h1>
-        <p class="page-description">Care plans you've created and their current status</p>
-      </div>
-
-      <div v-if="isLoading" class="loading-state">
-        <div class="spinner"></div>
-        <p>Loading your plans...</p>
-      </div>
-
-      <div v-else-if="error" class="error-state">
-        <p class="error-message">{{ error }}</p>
-        <button @click="loadPlans" class="retry-button">Try Again</button>
-      </div>
-
-      <div v-else-if="plans.length === 0" class="empty-state">
-        <div class="empty-state__icon">
-          <BaseIcon :path="mdiFileDocumentMultipleOutline" :size="48" />
-        </div>
-        <h2 class="empty-state__title">No Plans Yet</h2>
-        <p class="empty-state__description">
-          You haven't created any care plans yet. Start by submitting a care request.
-        </p>
-        <BaseButton variant="primary" @click="goToDashboard">
-          Create Care Request
+    <div class="view-container">
+      <!-- Page header: Create new plan (only when user has plans; empty state has its own button) -->
+      <header v-if="!isLoading && plans.length > 0" class="page-header">
+        <BaseButton
+          variant="primary"
+          size="lg"
+          icon
+          class="page-header__action"
+          @click="goToDashboard"
+        >
+          <template #icon>
+            <BaseIcon :path="mdiPlus" :size="20" />
+          </template>
+          New plan
         </BaseButton>
+      </header>
+
+      <LoadingState v-if="isLoading" text="Loading your plans..." />
+
+      <ErrorState v-else-if="error" :message="error" :icon="mdiAlertCircle">
+        <template #action>
+          <BaseButton variant="primary" icon @click="loadPlans">
+            <template #icon>
+              <BaseIcon :path="mdiRefresh" :size="18" />
+            </template>
+            Try Again
+          </BaseButton>
+        </template>
+      </ErrorState>
+
+      <!-- Empty state -->
+      <div v-else-if="plans.length === 0" class="empty-state-centered">
+        <EmptyCard
+          :icon="mdiFileDocumentMultipleOutline"
+          title="No Plans Yet"
+          description="Create your first care plan to get started with coordinating care for your loved ones."
+        >
+          <template #action>
+            <BaseButton variant="primary" size="lg" icon @click="goToDashboard">
+              <template #icon>
+                <BaseIcon :path="mdiPlus" :size="20" />
+              </template>
+              New plan
+            </BaseButton>
+          </template>
+        </EmptyCard>
       </div>
 
       <div v-else class="plans-list">
         <div v-for="plan in plans" :key="plan.id" class="plan-card">
           <div class="plan-card__header">
             <div class="plan-card__title-section">
-              <h3 class="plan-card__title">{{ plan.summary || 'Care Plan' }}</h3>
+              <h3 class="plan-card__title" :title="plan.summary || 'Care Plan'">{{ plan.summary || 'Care Plan' }}</h3>
               <span class="plan-card__date">
                 Created {{ formatDate(plan.created_at) }}
               </span>
@@ -86,18 +105,21 @@
 
           <!-- Task Summary -->
           <div v-if="expandedPlanId === plan.id" class="plan-card__tasks">
-            <div v-if="loadingTasks[plan.id]" class="loading-tasks">
-              <div class="spinner-sm"></div>
-              <span>Loading tasks...</span>
-            </div>
+            <LoadingSpinner v-if="loadingTasks[plan.id]" size="sm" text="Loading tasks..." />
             <div v-else-if="planTasks[plan.id] && planTasks[plan.id]!.length > 0" class="tasks-list">
               <h4 class="tasks-list__title">Tasks ({{ planTasks[plan.id]?.length || 0 }})</h4>
-              <div class="task-item" v-for="task in planTasks[plan.id]!" :key="task.id">
+              <div class="task-item" v-for="task in sortedTasks(plan.id)" :key="task.id">
                 <div class="task-item__header">
                   <span class="task-item__priority" :class="`priority-${task.priority}`">
                     {{ task.priority.toUpperCase() }}
                   </span>
-                  <span class="task-item__status" :class="`status-${task.status}`">
+                  <span
+                    class="task-item__status"
+                    :class="`status-${task.status}`"
+                    :title="(task.status === 'claimed' || task.status === 'completed') && task.claimed_by_name
+                      ? (task.status === 'completed' ? `Completed by ${task.claimed_by_name}` : `Claimed by ${task.claimed_by_name}`)
+                      : formatTaskStatus(task.status)"
+                  >
                     <template v-if="(task.status === 'claimed' || task.status === 'completed') && task.claimed_by_name">
                       {{ task.status === 'completed' ? `Completed by ${task.claimed_by_name}` : `Claimed by ${task.claimed_by_name}` }}
                     </template>
@@ -111,35 +133,38 @@
                 <div class="task-item__meta">
                   <span class="task-item__category">{{ task.category }}</span>
                 </div>
-                <!-- Claim Button for Plan Owner -->
-                <!-- Show button if user is plan owner and task is available (not claimed/completed) -->
-                <div 
-                  v-if="isPlanOwner(plan) && task.status === 'available' && !task.claimed_by" 
-                  class="task-item__actions"
-                >
-                  <button
-                    @click="handleClaimTask(plan.id, task.id)"
-                    class="claim-button"
-                    :disabled="claimingTaskId === task.id"
+                
+                <!-- Task Actions Container -->
+                <div class="task-item__footer">
+                  <!-- Claim Button for Plan Owner -->
+                  <div 
+                    v-if="isPlanOwner(plan) && task.status === 'available' && !task.claimed_by" 
+                    class="task-item__actions"
                   >
-                    <BaseIcon :path="mdiAccountPlus" :size="16" />
-                    {{ claimingTaskId === task.id ? 'Claiming...' : 'Claim Task' }}
-                  </button>
-                </div>
-                <!-- Reopen Button for Plan Owner (completed tasks only) -->
-                <div
-                  v-if="isPlanOwner(plan) && task.status === 'completed'"
-                  class="task-item__actions"
-                >
-                  <button
-                    type="button"
-                    class="reopen-button"
-                    :disabled="reopeningTaskId === task.id"
-                    @click="openReopenDialog(plan.id, task)"
+                    <button
+                      @click="handleClaimTask(plan.id, task.id)"
+                      class="claim-button"
+                      :disabled="claimingTaskId === task.id"
+                    >
+                      <BaseIcon :path="mdiAccountPlus" :size="16" />
+                      {{ claimingTaskId === task.id ? 'Claiming...' : 'Claim' }}
+                    </button>
+                  </div>
+                  <!-- Reopen Button for Plan Owner (completed tasks only) -->
+                  <div
+                    v-if="isPlanOwner(plan) && task.status === 'completed'"
+                    class="task-item__actions"
                   >
-                    <BaseIcon :path="mdiRefresh" :size="16" />
-                    {{ reopeningTaskId === task.id ? 'Reopening...' : 'Reopen task' }}
-                  </button>
+                    <button
+                      type="button"
+                      class="reopen-button"
+                      :disabled="reopeningTaskId === task.id"
+                      @click="openReopenDialog(plan.id, task)"
+                    >
+                      <BaseIcon :path="mdiRefresh" :size="16" />
+                      {{ reopeningTaskId === task.id ? 'Reopening...' : 'Reopen' }}
+                    </button>
+                  </div>
                 </div>
                 <!-- Task diary (plan owner follow-up) -->
                 <div v-if="isPlanOwner(plan)" class="task-diary-section">
@@ -245,6 +270,7 @@
       :cancel-text="PLAN_ACTIONS.DELETE.CANCEL"
       variant="danger"
       :icon="mdiAlertCircle"
+      :confirm-icon="mdiDeleteOutline"
       :loading-text="'Deleting...'"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
@@ -275,6 +301,10 @@ import { api } from '@/services/api';
 import { useAuthStore } from '@/stores/authStore';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
+import LoadingState from '@/components/atoms/LoadingState.vue';
+import EmptyCard from '@/components/atoms/EmptyCard.vue';
+import ErrorState from '@/components/atoms/ErrorState.vue';
+import LoadingSpinner from '@/components/atoms/LoadingSpinner.vue';
 import PlanCompletionIndicator from '@/components/atoms/PlanCompletionIndicator.vue';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import TaskDiaryActionDialog from '@/components/organisms/TaskDiaryActionDialog.vue';
@@ -285,7 +315,6 @@ import {
   mdiChevronDown,
   mdiChevronUp,
   mdiChevronRight,
-  mdiAccountCheck,
   mdiAccountPlus,
   mdiCheckCircle,
   mdiAlertCircle,
@@ -294,6 +323,7 @@ import {
   mdiPencil,
   mdiDeleteOutline,
   mdiRefresh,
+  mdiPlus,
 } from '@mdi/js';
 
 interface CarePlan {
@@ -624,102 +654,116 @@ function formatEventTime(iso: string): string {
     minute: '2-digit',
   });
 }
+
+// Sort tasks so claimed/completed appear first
+function sortedTasks(planId: string): CareTask[] {
+  const tasks = planTasks.value[planId];
+  if (!tasks) return [];
+  
+  return [...tasks].sort((a, b) => {
+    // Priority order: claimed -> completed -> available
+    const statusOrder: Record<string, number> = {
+      claimed: 0,
+      completed: 1,
+      available: 2,
+      draft: 3,
+    };
+    
+    const orderA = statusOrder[a.status] ?? 999;
+    const orderB = statusOrder[b.status] ?? 999;
+    
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    
+    // Within same status, sort by priority (high -> medium -> low)
+    const priorityOrder: Record<string, number> = {
+      high: 0,
+      medium: 1,
+      low: 2,
+    };
+    
+    return (priorityOrder[a.priority] ?? 999) - (priorityOrder[b.priority] ?? 999);
+  });
+}
 </script>
 
 <style scoped>
 .my-plans-view {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--height-header));
   padding: var(--spacing-2xl) 0;
-  background: var(--color-bg-primary);
+  background: var(--color-bg-secondary);
 }
 
-.container {
-  max-width: 1000px;
+.view-container {
+  max-width: var(--container-lg);
   margin: 0 auto;
-  padding: 0 var(--spacing-lg);
+  padding: 0 var(--layout-padding-desktop);
 }
 
-@media (min-width: 1024px) {
-  .container {
-    max-width: 1100px;
-  }
-}
-
+/* Page header: title + Create new plan */
 .page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
   margin-bottom: var(--spacing-2xl);
 }
 
-.page-title {
-  font-size: var(--font-size-3xl);
+.page-header__title {
+  margin: 0;
+  font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-xs);
+  letter-spacing: -0.02em;
+  line-height: var(--line-height-tight);
 }
 
-.page-description {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  margin: 0;
+.page-header__action {
+  flex-shrink: 0;
 }
 
-.loading-state,
-.error-state,
-.empty-state {
-  text-align: center;
-  padding: var(--spacing-2xl);
-}
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+  }
 
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto var(--spacing-lg);
-}
+  .page-header__title {
+    font-size: var(--font-size-xl);
+  }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+  .page-header__action {
+    width: 100%;
+    justify-content: center;
   }
 }
 
-.error-message {
-  color: var(--color-danger);
-  margin-bottom: var(--spacing-lg);
+.empty-state-centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  padding: var(--spacing-4xl) 0;
 }
 
-.retry-button {
-  padding: var(--spacing-md) var(--spacing-xl);
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-family: var(--font-family-base);
+@media (max-width: 1024px) {
+  .view-container {
+    padding: 0 var(--layout-padding-tablet);
+  }
 }
 
-/* Empty State */
-.empty-state__icon {
-  color: var(--color-text-tertiary);
-  margin-bottom: var(--spacing-md);
-}
-
-.empty-state__title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-sm);
-}
-
-.empty-state__description {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  margin: 0 0 var(--spacing-lg);
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
+@media (max-width: 768px) {
+  .my-plans-view {
+    padding: var(--spacing-2xl) 0 var(--spacing-xl);
+  }
+  
+  .view-container {
+    padding: 0 var(--layout-padding-mobile);
+  }
 }
 
 /* Plans List */
@@ -729,24 +773,26 @@ function formatEventTime(iso: string): string {
 }
 
 .plan-card {
-  background: white;
+  background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--shadow-card);
   transition: all var(--transition-base);
 }
 
 .plan-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-primary);
+  transform: translateY(-3px);
 }
 
 .plan-card__header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  align-items: flex-start;
+  gap: var(--component-gap-lg);
+  margin-bottom: var(--component-gap-lg);
 }
 
 .plan-card__title-section {
@@ -755,42 +801,46 @@ function formatEventTime(iso: string): string {
 }
 
 .plan-card__title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-xs);
+  margin: 0 0 var(--spacing-sm);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.01em;
 }
 
 .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   background: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
 }
 
 .icon-button:hover {
   background: var(--color-bg-secondary);
   border-color: var(--color-primary);
   color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
 .icon-button--danger:hover {
   border-color: var(--color-danger);
   color: var(--color-danger);
+  background: var(--color-danger-light);
 }
 
 .plan-card__header-right {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   flex-shrink: 0;
 }
 
@@ -798,15 +848,15 @@ function formatEventTime(iso: string): string {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
-  height: 28px;
-  padding: 0 var(--spacing-sm);
+  gap: var(--spacing-sm);
+  height: 36px;
+  padding: 0 var(--spacing-lg);
   background: transparent;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-button);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
   flex-shrink: 0;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
@@ -817,10 +867,20 @@ function formatEventTime(iso: string): string {
   white-space: nowrap;
 }
 
+@media (max-width: 768px) {
+  .copy-link-button__label {
+    display: none;
+  }
+  .copy-link-button {
+    padding: 0 var(--spacing-md);
+  }
+}
+
 .copy-link-button:hover {
   background: var(--color-bg-secondary);
   border-color: var(--color-primary);
   color: var(--color-primary);
+  transform: translateY(-1px);
 }
 
 .copy-link-button.is-copied {
@@ -835,81 +895,58 @@ function formatEventTime(iso: string): string {
 }
 
 .plan-card__completion {
-  margin-bottom: var(--spacing-md);
-}
-
-.plan-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-}
-
-.plan-card__meta-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  margin-bottom: var(--component-gap-lg);
 }
 
 /* Tasks Section */
 .plan-card__tasks {
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--color-border);
-}
-
-.loading-tasks {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xl);
-  color: var(--color-text-secondary);
-}
-
-.spinner-sm {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  margin-top: var(--component-gap-lg);
+  padding-top: var(--component-gap-lg);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .tasks-list__title {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-md);
+  margin: 0 0 var(--spacing-xl);
+  letter-spacing: -0.01em;
 }
 
 .task-item {
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  transition: all var(--transition-fast);
 }
 
 .task-item:last-child {
   margin-bottom: 0;
 }
 
+.task-item:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
 .task-item__header {
   display: flex;
-  gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-sm);
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
 .task-item__priority,
 .task-item__status {
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-badge);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
+  letter-spacing: 0.025em;
 }
 
 .priority-high {
@@ -938,17 +975,18 @@ function formatEventTime(iso: string): string {
 }
 
 .task-item__title {
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-xs);
+  margin: 0 0 var(--spacing-md);
+  line-height: var(--line-height-tight);
 }
 
 .task-item__description {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   color: var(--color-text-secondary);
-  line-height: 1.5;
-  margin: 0 0 var(--spacing-sm);
+  line-height: var(--line-height-relaxed);
+  margin: 0 0 var(--spacing-lg);
 }
 
 .task-item__meta {
@@ -974,32 +1012,41 @@ function formatEventTime(iso: string): string {
   color: var(--color-success);
 }
 
+.task-item__footer {
+  margin-top: var(--spacing-lg);
+}
+
 .task-item__actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: var(--spacing-sm);
-  padding-top: var(--spacing-sm);
-  border-top: 1px solid var(--color-border);
+  gap: var(--spacing-md);
 }
 
-.claim-button {
+.claim-button,
+.reopen-button {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs) var(--spacing-md);
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-md);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-button);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
   font-family: var(--font-family-base);
+  box-shadow: var(--shadow-xs);
+}
+
+.claim-button {
+  background: var(--color-primary);
+  color: white;
+  border: none;
 }
 
 .claim-button:hover:not(:disabled) {
   background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .claim-button:disabled {
@@ -1008,24 +1055,16 @@ function formatEventTime(iso: string): string {
 }
 
 .reopen-button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs) var(--spacing-md);
-  background: var(--color-primary-subtle);
+  background: var(--color-bg-primary);
   color: var(--color-primary);
   border: 1px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  font-family: var(--font-family-base);
 }
 
 .reopen-button:hover:not(:disabled) {
   background: var(--color-primary);
   color: white;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .reopen-button:disabled {
@@ -1160,22 +1199,26 @@ function formatEventTime(iso: string): string {
 /* Action Buttons */
 .plan-card__actions {
   display: flex;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-lg);
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-2xl);
+  padding-top: var(--spacing-xl);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .action-button {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-md);
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-button);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
   border: none;
   font-family: var(--font-family-base);
+  flex: 1;
 }
 
 .action-button:disabled {
@@ -1186,27 +1229,50 @@ function formatEventTime(iso: string): string {
 .action-button.primary {
   background: var(--color-primary);
   color: white;
+  box-shadow: var(--shadow-button);
 }
 
 .action-button.primary:hover:not(:disabled) {
   background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .action-button.secondary {
-  background: white;
-  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
 
 .action-button.secondary:hover {
-  background: var(--color-bg-secondary);
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .plan-card__header {
-    flex-direction: column;
-    gap: var(--spacing-sm);
+  .view-container {
+    overflow-x: hidden;
+  }
+
+  .plans-list {
+    min-width: 0;
+    padding-top: var(--spacing-sm);
+  }
+
+  .plan-card {
+    min-width: 0;
+    overflow-x: hidden;
+    padding: var(--spacing-2xl) var(--spacing-lg);
+    padding-top: var(--spacing-3xl);
+  }
+
+  .plan-card__title {
+    font-size: var(--font-size-lg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .plan-card__actions {
@@ -1216,6 +1282,61 @@ function formatEventTime(iso: string): string {
   .action-button {
     width: 100%;
     justify-content: center;
+  }
+
+  /* Expanded tasks: fit viewport, no horizontal overflow */
+  .plan-card__tasks {
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  .task-item {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  /* Task item tags: single line, status truncated with "..." */
+  .task-item__header {
+    flex-wrap: nowrap;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .task-item__priority {
+    flex-shrink: 0;
+  }
+
+  .task-item__status {
+    min-width: 0;
+    max-width: 65%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Title and description don't overflow on mobile */
+  .task-item__title,
+  .task-item__description {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Ensure task actions (claim, reopen) are visible on mobile */
+  .task-item__footer {
+    display: block;
+  }
+
+  .task-item__actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .reopen-button,
+  .claim-button {
+    flex-shrink: 0;
   }
 }
 </style>

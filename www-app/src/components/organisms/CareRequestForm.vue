@@ -66,10 +66,14 @@
             type="submit"
             variant="primary"
             size="md"
+            icon
             :loading="isSubmitting"
             :disabled="!isFormValid"
             full-width
           >
+            <template #icon>
+              <BaseIcon :path="mdiHandHeart" :size="18" />
+            </template>
             Get Help
           </BaseButton>
           
@@ -90,7 +94,7 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import { VALIDATION } from '@/constants';
 import type { CareRequest } from '@/types';
-import { mdiChevronDown } from '@mdi/js';
+import { mdiChevronDown, mdiHandHeart } from '@mdi/js';
 
 interface FormData {
   narrative: string;

@@ -45,13 +45,14 @@ const cardClasses = computed(() => [
 <style scoped>
 .card {
   background-color: var(--color-bg-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   transition: all var(--transition-base);
 }
 
 /* Variants */
 .card--default {
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-xs);
 }
 
 .card--outlined {
@@ -59,7 +60,7 @@ const cardClasses = computed(() => [
 }
 
 .card--elevated {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-card);
   border: none;
 }
 
@@ -69,15 +70,15 @@ const cardClasses = computed(() => [
 }
 
 .card--padding-sm .card__body {
-  padding: var(--spacing-md);
+  padding: var(--component-padding-sm);
 }
 
 .card--padding-md .card__body {
-  padding: var(--spacing-lg);
+  padding: var(--component-padding-md);
 }
 
 .card--padding-lg .card__body {
-  padding: var(--spacing-xl);
+  padding: var(--component-padding-lg);
 }
 
 /* Hoverable */
@@ -87,12 +88,13 @@ const cardClasses = computed(() => [
 
 .card--hoverable:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--color-primary);
 }
 
 /* Header */
 .card__header {
-  padding: var(--spacing-lg);
+  padding: var(--component-padding-md);
   border-bottom: 1px solid var(--color-border-light);
 }
 
@@ -105,10 +107,10 @@ const cardClasses = computed(() => [
 
 /* Footer */
 .card__footer {
-  padding: var(--spacing-lg);
+  padding: var(--component-padding-md);
   border-top: 1px solid var(--color-border-light);
   background-color: var(--color-bg-secondary);
-  border-bottom-left-radius: var(--radius-lg);
-  border-bottom-right-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-card);
+  border-bottom-right-radius: var(--radius-card);
 }
 </style>

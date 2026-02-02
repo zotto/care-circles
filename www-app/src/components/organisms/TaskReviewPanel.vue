@@ -12,11 +12,14 @@
         <BaseButton
           variant="outline"
           size="md"
+          icon
           @click="handleRefresh"
           :loading="isRefreshing"
           :disabled="isRefreshing"
         >
-          <BaseIcon :path="mdiRefresh" :size="18" style="margin-right: 6px;" />
+          <template #icon>
+            <BaseIcon :path="mdiRefresh" :size="18" />
+          </template>
           Refresh
         </BaseButton>
       </div>
@@ -52,7 +55,10 @@
     <div v-else-if="error" class="task-review-panel__error">
       <div class="error-icon">⚠️</div>
       <p class="error-message">{{ error }}</p>
-      <BaseButton variant="outline" size="sm" @click="handleRefresh">
+      <BaseButton variant="outline" size="sm" icon @click="handleRefresh">
+        <template #icon>
+          <BaseIcon :path="mdiRefresh" :size="16" />
+        </template>
         Try Again
       </BaseButton>
     </div>
@@ -140,17 +146,24 @@
           <BaseButton
             variant="outline"
             size="lg"
+            icon
             @click="$emit('cancel')"
           >
+            <template #icon>
+              <BaseIcon :path="mdiClose" :size="18" />
+            </template>
             Cancel
           </BaseButton>
           <BaseButton
             variant="primary"
             size="lg"
+            icon
             @click="handleApprove"
             :disabled="!planName || planName.trim() === '' || isApprovingPlan"
           >
-            <BaseIcon :path="mdiCheck" :size="20" style="margin-right: 8px;" />
+            <template #icon>
+              <BaseIcon :path="mdiCheck" :size="18" />
+            </template>
             Approve Plan
           </BaseButton>
         </div>

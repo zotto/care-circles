@@ -4,7 +4,6 @@
     <main class="app-main">
       <RouterView />
     </main>
-    <AppFooter />
     <LoginModal v-model="showLoginModal" />
   </div>
 </template>
@@ -13,7 +12,6 @@
 import { watch } from 'vue';
 import { RouterView } from 'vue-router';
 import AppHeader from '@/components/organisms/AppHeader.vue';
-import AppFooter from '@/components/organisms/AppFooter.vue';
 import LoginModal from '@/components/organisms/LoginModal.vue';
 import { useLoginModal } from '@/composables/useLoginModal';
 import { useAuthStore } from '@/stores/authStore';

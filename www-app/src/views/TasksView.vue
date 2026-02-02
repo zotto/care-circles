@@ -88,10 +88,11 @@
       ref="deleteDialog"
       title="Remove Task?"
       message="Are you sure you want to remove this task from the plan?"
-      confirm-text="Remove Task"
-      cancel-text="Keep Task"
+      confirm-text="Remove"
+      cancel-text="Cancel"
       variant="danger"
       :icon="mdiAlertCircle"
+      :confirm-icon="mdiDeleteOutline"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
@@ -119,7 +120,7 @@ import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import { useCareStore } from '@/stores/careStore';
 import type { CareTask } from '@/types';
 import { PLAN_APPROVAL } from '@/constants';
-import { mdiAlertCircle } from '@mdi/js';
+import { mdiAlertCircle, mdiDeleteOutline } from '@mdi/js';
 
 const router = useRouter();
 const careStore = useCareStore();

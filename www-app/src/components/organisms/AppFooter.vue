@@ -27,17 +27,17 @@ const currentYear = computed(() => new Date().getFullYear());
 
 <style scoped>
 .app-footer {
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-primary);
   border-top: 1px solid var(--color-border-light);
   margin-top: auto;
-  padding: var(--spacing-2xl) 0;
+  padding: var(--spacing-3xl) 0;
 }
 
 .app-footer__content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-xl);
   flex-wrap: wrap;
 }
 
@@ -54,7 +54,7 @@ const currentYear = computed(() => new Date().getFullYear());
 .app-footer__links {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
 }
 
 .app-footer__link {
@@ -62,6 +62,7 @@ const currentYear = computed(() => new Date().getFullYear());
   color: var(--color-text-secondary);
   text-decoration: none;
   transition: color var(--transition-fast);
+  font-weight: var(--font-weight-medium);
 }
 
 .app-footer__link:hover {
@@ -69,18 +70,22 @@ const currentYear = computed(() => new Date().getFullYear());
 }
 
 .app-footer__separator {
-  color: var(--color-text-tertiary);
+  color: var(--color-border);
   font-size: var(--font-size-sm);
 }
 
 @media (max-width: 640px) {
   .app-footer {
-    padding: var(--spacing-xl) 0;
+    padding: var(--spacing-2xl) 0;
   }
 
   .app-footer__content {
     flex-direction: column;
     text-align: center;
+  }
+  
+  .app-footer__links {
+    gap: var(--spacing-md);
   }
 }
 </style>

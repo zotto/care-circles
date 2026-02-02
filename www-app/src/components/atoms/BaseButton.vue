@@ -72,7 +72,7 @@ const handleClick = (event: MouseEvent) => {
   font-weight: var(--font-weight-medium);
   text-align: center;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-button);
   cursor: pointer;
   transition: all var(--transition-base);
   white-space: nowrap;
@@ -97,7 +97,7 @@ const handleClick = (event: MouseEvent) => {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-button);
   opacity: 0;
   transition: opacity var(--transition-fast);
   pointer-events: none;
@@ -114,21 +114,21 @@ const handleClick = (event: MouseEvent) => {
 
 /* Sizes */
 .button--sm {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
   font-size: var(--font-size-sm);
-  height: 36px;
+  height: var(--height-button-sm);
 }
 
 .button--md {
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-xl);
   font-size: var(--font-size-base);
-  height: 44px;
+  height: var(--height-button-md);
 }
 
 .button--lg {
-  padding: var(--spacing-md) var(--spacing-2xl);
-  font-size: var(--font-size-base);
-  height: 52px;
+  padding: var(--spacing-lg) var(--spacing-2xl);
+  font-size: var(--font-size-lg);
+  height: var(--height-button-lg);
   font-weight: var(--font-weight-semibold);
 }
 

@@ -69,15 +69,16 @@ const handleFocus = (event: FocusEvent) => {
 <style scoped>
 .base-input {
   width: 100%;
-  padding: var(--spacing-md);
+  height: var(--height-input-md);
+  padding: 0 var(--spacing-lg);
   font-family: var(--font-family-base);
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-input);
+  transition: all var(--transition-fast);
 }
 
 .base-input::placeholder {
@@ -85,13 +86,15 @@ const handleFocus = (event: FocusEvent) => {
 }
 
 .base-input:hover:not(:disabled):not(:readonly) {
-  border-color: var(--color-primary-light);
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-primary);
 }
 
 .base-input:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-subtle);
+  background-color: var(--color-bg-primary);
 }
 
 .base-input--error {

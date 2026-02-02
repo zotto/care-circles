@@ -72,10 +72,16 @@
                   {{ copiedPlanId === plan.id ? 'Link copied!' : 'Share plan' }}
                 </span>
               </button>
-              <span class="plan-card__status" :class="`status-${plan.status}`">
-                {{ formatStatus(plan.status) }}
-              </span>
             </div>
+          </div>
+
+          <!-- Plan completion indicator (total vs completed tasks) -->
+          <div class="plan-card__completion">
+            <PlanCompletionIndicator
+              :total="getPlanCompletion(plan.id).total"
+              :completed="getPlanCompletion(plan.id).completed"
+              :loading="loadingTasks[plan.id] ?? false"
+            />
           </div>
 
           <!-- Task Summary -->
@@ -237,6 +243,7 @@ import { api } from '@/services/api';
 import { useAuthStore } from '@/stores/authStore';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
+import PlanCompletionIndicator from '@/components/atoms/PlanCompletionIndicator.vue';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import { PLAN_ACTIONS, TASK_DIARY } from '@/constants';
 import type { CareTaskEvent } from '@/types';
@@ -317,11 +324,41 @@ async function loadPlans() {
 
   try {
     plans.value = await api.listCarePlans();
+    await loadTasksForAllPlans();
   } catch (err: any) {
     error.value = err.message || 'Failed to load plans';
   } finally {
     isLoading.value = false;
   }
+}
+
+/** Prefetch tasks for all plans so completion (total vs completed) is visible on every card. */
+async function loadTasksForAllPlans() {
+  if (plans.value.length === 0) return;
+  for (const plan of plans.value) {
+    loadingTasks.value[plan.id] = true;
+  }
+  await Promise.all(
+    plans.value.map(async (plan) => {
+      try {
+        const tasks = await api.getCarePlanTasks(plan.id);
+        planTasks.value[plan.id] = tasks;
+      } catch {
+        planTasks.value[plan.id] = [];
+      } finally {
+        loadingTasks.value[plan.id] = false;
+      }
+    })
+  );
+}
+
+/** Derive plan-level completion from current task list (created/removed/updated/released all reflected). */
+function getPlanCompletion(planId: string): { total: number; completed: number } {
+  const tasks = planTasks.value[planId];
+  if (!tasks) return { total: 0, completed: 0 };
+  const total = tasks.length;
+  const completed = tasks.filter((t) => t.status === 'completed').length;
+  return { total, completed };
 }
 
 async function toggleTasks(planId: string) {
@@ -396,16 +433,6 @@ function formatDate(dateString: string): string {
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
     });
   }
-}
-
-function formatStatus(status: string): string {
-  const statusMap: Record<string, string> = {
-    draft: 'Draft',
-    approved: 'Approved',
-    active: 'Active',
-    completed: 'Completed',
-  };
-  return statusMap[status] || status;
 }
 
 function formatTaskStatus(status: string): string {
@@ -726,30 +753,8 @@ function formatEventTime(iso: string): string {
   color: var(--color-text-tertiary);
 }
 
-.plan-card__status {
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  white-space: nowrap;
-  line-height: 1.2;
-}
-
-.status-draft {
-  background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
-}
-
-.status-approved,
-.status-active {
-  background: var(--color-success-light);
-  color: var(--color-success);
-}
-
-.status-completed {
-  background: var(--color-info-light);
-  color: var(--color-info);
+.plan-card__completion {
+  margin-bottom: var(--spacing-md);
 }
 
 .plan-card__meta {
@@ -1091,10 +1096,6 @@ function formatEventTime(iso: string): string {
   .plan-card__header {
     flex-direction: column;
     gap: var(--spacing-sm);
-  }
-
-  .plan-card__status {
-    align-self: flex-start;
   }
 
   .plan-card__actions {

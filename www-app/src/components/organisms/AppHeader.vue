@@ -84,14 +84,6 @@
                   <BaseIcon :path="mdiClipboardCheck" :size="18" />
                   <span>My Tasks</span>
                 </button>
-                <button class="app-header__dropdown-item" @click="navigateTo('/settings')">
-                  <BaseIcon :path="mdiCog" :size="18" />
-                  <span>Settings</span>
-                </button>
-                <button class="app-header__dropdown-item" @click="navigateTo('/profile')">
-                  <BaseIcon :path="mdiAccountCircle" :size="18" />
-                  <span>Profile</span>
-                </button>
               </div>
 
               <div class="app-header__dropdown-divider"></div>
@@ -131,8 +123,6 @@ import {
   mdiClipboardCheck,
   mdiAccount,
   mdiChevronDown,
-  mdiCog,
-  mdiAccountCircle,
   mdiLogout,
   mdiLogin
 } from '@mdi/js';

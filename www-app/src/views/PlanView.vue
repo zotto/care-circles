@@ -450,6 +450,21 @@ const onSuccessLeave = (el: Element) => {
   align-items: center;
 }
 
+/* Desktop: use more horizontal space */
+@media (min-width: 1024px) {
+  .plan-view__content {
+    max-width: 1100px;
+  }
+
+  .plan-view__welcome {
+    max-width: 880px;
+  }
+
+  .plan-view__success-card {
+    max-width: 800px;
+  }
+}
+
 /* Success Transition */
 .success-enter-active,
 .success-leave-active {

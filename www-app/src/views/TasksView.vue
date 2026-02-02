@@ -178,6 +178,12 @@ const handleCloseModal = () => {
   margin: 0 auto;
 }
 
+@media (min-width: 1024px) {
+  .tasks-view__content {
+    max-width: 1100px;
+  }
+}
+
 .tasks-view__header {
   text-align: center;
   padding: var(--spacing-xl) 0;

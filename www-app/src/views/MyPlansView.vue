@@ -367,6 +367,12 @@ async function handleClaimTask(planId: string, taskId: string) {
   padding: 0 var(--spacing-lg);
 }
 
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1100px;
+  }
+}
+
 .page-header {
   margin-bottom: var(--spacing-2xl);
 }

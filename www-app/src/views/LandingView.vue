@@ -442,6 +442,12 @@ onUnmounted(() => {
   max-width: 600px;
 }
 
+@media (min-width: 1024px) {
+  .hero__subtitle {
+    max-width: 720px;
+  }
+}
+
 .hero__actions {
   display: flex;
   gap: var(--spacing-md);
@@ -619,6 +625,12 @@ onUnmounted(() => {
   margin: 0 auto;
 }
 
+@media (min-width: 1024px) {
+  .features__subtitle {
+    max-width: 720px;
+  }
+}
+
 .features__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -702,6 +714,12 @@ onUnmounted(() => {
   color: var(--color-text-secondary);
   max-width: 600px;
   margin: 0 auto;
+}
+
+@media (min-width: 1024px) {
+  .how-it-works__subtitle {
+    max-width: 720px;
+  }
 }
 
 .how-it-works__steps {

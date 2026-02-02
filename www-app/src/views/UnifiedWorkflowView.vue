@@ -1551,6 +1551,25 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   opacity: 0;
 }
 
+/* Desktop: use more horizontal space */
+@media (min-width: 1024px) {
+  .care-workflow__section--centered {
+    max-width: 1100px;
+  }
+
+  .status-card {
+    max-width: 1100px;
+  }
+
+  .care-plan-card {
+    max-width: 1100px;
+  }
+
+  .error-card {
+    max-width: 1100px;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .care-workflow {

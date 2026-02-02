@@ -160,6 +160,7 @@ const handleSubmit = async () => {
 .care-request-form {
   max-width: 800px;
   margin: 0 auto;
+  width: 100%;
   border: none;
   background: var(--color-bg-primary);
   box-shadow: var(--shadow-lg);
@@ -167,6 +168,13 @@ const handleSubmit = async () => {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Use more horizontal space on desktop */
+@media (min-width: 1024px) {
+  .care-request-form {
+    max-width: 1100px;
+  }
 }
 
 .care-request-form::before {

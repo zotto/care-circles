@@ -43,6 +43,11 @@ class TaskReleaseBody(BaseModel):
     reason: str = Field(..., min_length=1, max_length=TaskEventConstants.MAX_CONTENT_LENGTH)
 
 
+class TaskReopenBody(BaseModel):
+    """Request body for reopening a completed task (plan owner only)"""
+    reason: str = Field(..., min_length=1, max_length=TaskEventConstants.MAX_CONTENT_LENGTH)
+
+
 @router.get(
     "/tasks/available",
     response_model=List[CareTask],
@@ -183,6 +188,36 @@ async def release_task(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to release task",
+        )
+
+
+@router.post(
+    "/tasks/{task_id}/reopen",
+    response_model=CareTask,
+    summary="Reopen task",
+    description="Reopen a completed task with a reason (plan owner only). Re-assigns to previous task owner.",
+)
+async def reopen_task(
+    task_id: str,
+    body: TaskReopenBody,
+    user: AuthUser = Depends(get_current_user),
+):
+    """
+    Reopen a completed task. Plan owner only. Reason is stored in the task diary.
+    Task is re-assigned to the previous task owner so they can continue working.
+    """
+    try:
+        db = get_service_client()
+        task_service = TaskService(db)
+        task = await task_service.reopen_task(task_id, user, body.reason)
+        return task
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error reopening task: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reopen task",
         )
 
 

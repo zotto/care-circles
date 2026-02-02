@@ -345,6 +345,14 @@ class ApiClient {
     const response = await this.client.post(`/tasks/${taskId}/release`, { reason });
     return response.data;
   }
+
+  /**
+   * Reopen a completed task with reason (plan owner only). Re-assigns to previous task owner.
+   */
+  async reopenTask(taskId: string, reason: string): Promise<any> {
+    const response = await this.client.post(`/tasks/${taskId}/reopen`, { reason });
+    return response.data;
+  }
 }
 
 /**

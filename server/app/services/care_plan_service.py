@@ -149,13 +149,14 @@ class CarePlanService:
         """
         try:
             plan = self.plan_repo.get_by_id(plan_id)
-            
+
             if not plan:
+                logger.warning("Care plan not found for plan_id=%s", plan_id)
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Care plan not found"
                 )
-            
+
             # Only creator can approve
             if plan["created_by"] != user.user_id:
                 raise HTTPException(

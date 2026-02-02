@@ -142,10 +142,10 @@ class CareTaskRepository(BaseRepository):
     def complete_task(self, task_id: str) -> Optional[Dict[str, Any]]:
         """
         Mark a task as completed
-        
+
         Args:
             task_id: Task ID
-            
+
         Returns:
             Optional[dict]: Updated task or None
         """
@@ -154,15 +154,41 @@ class CareTaskRepository(BaseRepository):
                 "status": TaskStatusConstants.COMPLETED,
                 "completed_at": datetime.utcnow().isoformat()
             }
-            
+
             result = self.update(task_id, updates)
             logger.info(f"Completed task {task_id}")
             return result
-        
+
         except Exception as e:
             logger.error(f"Error completing task: {str(e)}")
             raise
-    
+
+    def reopen_task(self, task_id: str, previous_claimed_by: str) -> Optional[Dict[str, Any]]:
+        """
+        Reopen a completed task and re-assign to the previous owner (claimed_by).
+        Sets status to claimed, clears completed_at; claimed_by and claimed_at remain.
+
+        Args:
+            task_id: Task ID
+            previous_claimed_by: User ID to re-assign (the previous task owner)
+
+        Returns:
+            Optional[dict]: Updated task or None
+        """
+        try:
+            updates = {
+                "status": TaskStatusConstants.CLAIMED,
+                "completed_at": None,
+                "claimed_by": previous_claimed_by,
+                "claimed_at": datetime.utcnow().isoformat(),
+            }
+            result = self.update(task_id, updates)
+            logger.info(f"Reopened task {task_id}, re-assigned to {previous_claimed_by}")
+            return result
+        except Exception as e:
+            logger.error(f"Error reopening task: {str(e)}")
+            raise
+
     def bulk_create(self, tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Create multiple tasks at once

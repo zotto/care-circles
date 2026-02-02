@@ -101,7 +101,7 @@
                       :class="`task-diary-item--${ev.event_type}`"
                     >
                       <span class="task-diary-item__type">
-                        {{ TASK_DIARY.DIARY.EVENT_TYPES[ev.event_type] }}
+                        {{ getDiaryEventTypeLabel(ev.event_type) }}
                       </span>
                       <p class="task-diary-item__content">{{ ev.content }}</p>
                       <time class="task-diary-item__time" :datetime="ev.created_at">
@@ -340,6 +340,11 @@ async function loadDiaryForTask(taskId: string) {
   } finally {
     diaryLoadingTaskId.value = null;
   }
+}
+
+function getDiaryEventTypeLabel(eventType: string): string {
+  const labels: Record<string, string> = TASK_DIARY.DIARY.EVENT_TYPES as unknown as Record<string, string>;
+  return labels[eventType] ?? eventType;
 }
 
 function formatEventTime(iso: string): string {
@@ -677,6 +682,10 @@ function closeErrorDialog() {
 
 .task-diary-item--released .task-diary-item__type {
   color: var(--color-warning);
+}
+
+.task-diary-item--reopened .task-diary-item__type {
+  color: var(--color-primary);
 }
 
 .task-diary-item__content {

@@ -195,6 +195,18 @@ export const TASK_DIARY = {
     ERROR_TITLE: 'Failed to release task',
     MAX_LENGTH: 2000,
   },
+  REOPEN: {
+    TITLE: 'Reopen task',
+    MESSAGE: 'Provide a reason for reopening so the task owner understands what to address.',
+    REASON_LABEL: 'Reason for reopening',
+    REASON_PLACEHOLDER: 'e.g. outcome not satisfactory, more details needed…',
+    CONFIRM: 'Reopen task',
+    CANCEL: 'Cancel',
+    SUCCESS_TITLE: 'Task reopened',
+    SUCCESS_MESSAGE: 'The task has been reopened and re-assigned to the previous owner.',
+    ERROR_TITLE: 'Failed to reopen task',
+    MAX_LENGTH: 2000,
+  },
   DIARY: {
     TITLE: 'Task diary',
     EMPTY: 'No updates yet. Add a status to keep the plan owner in the loop.',
@@ -202,6 +214,7 @@ export const TASK_DIARY = {
       status_update: 'Status update',
       completed: 'Completed',
       released: 'Released',
+      reopened: 'Reopened',
     } as const,
   },
 } as const;

@@ -125,6 +125,21 @@
                     {{ claimingTaskId === task.id ? 'Claiming...' : 'Claim Task' }}
                   </button>
                 </div>
+                <!-- Reopen Button for Plan Owner (completed tasks only) -->
+                <div
+                  v-if="isPlanOwner(plan) && task.status === 'completed'"
+                  class="task-item__actions"
+                >
+                  <button
+                    type="button"
+                    class="reopen-button"
+                    :disabled="reopeningTaskId === task.id"
+                    @click="openReopenDialog(plan.id, task)"
+                  >
+                    <BaseIcon :path="mdiRefresh" :size="16" />
+                    {{ reopeningTaskId === task.id ? 'Reopening...' : 'Reopen task' }}
+                  </button>
+                </div>
                 <!-- Task diary (plan owner follow-up) -->
                 <div v-if="isPlanOwner(plan)" class="task-diary-section">
                   <button
@@ -160,7 +175,7 @@
                             :class="`task-diary-item--${ev.event_type}`"
                           >
                             <span class="task-diary-item__type">
-                              {{ TASK_DIARY.DIARY.EVENT_TYPES[ev.event_type] }}
+                              {{ getDiaryEventTypeLabel(ev.event_type) }}
                             </span>
                             <p class="task-diary-item__content">{{ ev.content }}</p>
                             <time class="task-diary-item__time" :datetime="ev.created_at">
@@ -233,6 +248,22 @@
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />
+
+    <!-- Reopen Task Dialog (plan owner: reason required, re-assigns to previous owner) -->
+    <TaskDiaryActionDialog
+      ref="reopenDialog"
+      :title="TASK_DIARY.REOPEN.TITLE"
+      :message="TASK_DIARY.REOPEN.MESSAGE"
+      :field-label="TASK_DIARY.REOPEN.REASON_LABEL"
+      :field-placeholder="TASK_DIARY.REOPEN.REASON_PLACEHOLDER"
+      :confirm-text="TASK_DIARY.REOPEN.CONFIRM"
+      :cancel-text="TASK_DIARY.REOPEN.CANCEL"
+      :loading-text="'Reopening...'"
+      :max-length="TASK_DIARY.REOPEN.MAX_LENGTH"
+      variant="primary"
+      @confirm="confirmReopen"
+      @cancel="cancelReopen"
+    />
   </div>
 </template>
 
@@ -245,6 +276,7 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import PlanCompletionIndicator from '@/components/atoms/PlanCompletionIndicator.vue';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
+import TaskDiaryActionDialog from '@/components/organisms/TaskDiaryActionDialog.vue';
 import { PLAN_ACTIONS, TASK_DIARY } from '@/constants';
 import type { CareTaskEvent } from '@/types';
 import {
@@ -260,6 +292,7 @@ import {
   mdiCheck,
   mdiPencil,
   mdiDeleteOutline,
+  mdiRefresh,
 } from '@mdi/js';
 
 interface CarePlan {
@@ -307,6 +340,10 @@ const pendingDeletePlanId = ref<string | null>(null);
 const expandedDiaryTaskId = ref<string | null>(null);
 const diaryLoadingTaskId = ref<string | null>(null);
 const taskEventsByTaskId = ref<Record<string, CareTaskEvent[]>>({});
+const reopenDialog = ref<InstanceType<typeof TaskDiaryActionDialog> | null>(null);
+const reopeningTaskId = ref<string | null>(null);
+const pendingReopenPlanId = ref<string | null>(null);
+const pendingReopenTaskId = ref<string | null>(null);
 
 onMounted(async () => {
   await authStore.initialize();
@@ -523,6 +560,48 @@ async function loadDiaryForTask(taskId: string) {
     taskEventsByTaskId.value = { ...taskEventsByTaskId.value, [taskId]: [] };
   } finally {
     diaryLoadingTaskId.value = null;
+  }
+}
+
+function getDiaryEventTypeLabel(eventType: string): string {
+  const labels: Record<string, string> = TASK_DIARY.DIARY.EVENT_TYPES as unknown as Record<string, string>;
+  return labels[eventType] ?? eventType;
+}
+
+function openReopenDialog(planId: string, task: CareTask) {
+  pendingReopenPlanId.value = planId;
+  pendingReopenTaskId.value = task.id;
+  reopenDialog.value?.open();
+}
+
+function cancelReopen() {
+  pendingReopenPlanId.value = null;
+  pendingReopenTaskId.value = null;
+  reopenDialog.value?.close();
+}
+
+async function confirmReopen(reason: string) {
+  const planId = pendingReopenPlanId.value;
+  const taskId = pendingReopenTaskId.value;
+  if (!planId || !taskId) {
+    cancelReopen();
+    return;
+  }
+  reopenDialog.value?.setLoading(true);
+  reopeningTaskId.value = taskId;
+  try {
+    await api.reopenTask(taskId, reason);
+    reopenDialog.value?.setLoading(false);
+    cancelReopen();
+    window.location.reload();
+  } catch (err: unknown) {
+    reopenDialog.value?.setLoading(false);
+    cancelReopen();
+    errorDialogTitle.value = TASK_DIARY.REOPEN.ERROR_TITLE;
+    errorDialogMessage.value = err instanceof Error ? err.message : 'Could not reopen task. Please try again.';
+    errorDialog.value?.open();
+  } finally {
+    reopeningTaskId.value = null;
   }
 }
 
@@ -926,6 +1005,32 @@ function formatEventTime(iso: string): string {
   cursor: not-allowed;
 }
 
+.reopen-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  font-family: var(--font-family-base);
+}
+
+.reopen-button:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.reopen-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Task diary (plan owner follow-up) */
 .task-diary-section {
   margin-top: var(--spacing-md);
@@ -1015,6 +1120,10 @@ function formatEventTime(iso: string): string {
 
 .task-diary-item--released .task-diary-item__type {
   color: var(--color-warning);
+}
+
+.task-diary-item--reopened .task-diary-item__type {
+  color: var(--color-primary);
 }
 
 .task-diary-item__content {

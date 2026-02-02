@@ -40,7 +40,7 @@ export interface CareTask {
 }
 
 /** Task diary event type */
-export type TaskEventType = 'status_update' | 'completed' | 'released';
+export type TaskEventType = 'status_update' | 'completed' | 'released' | 'reopened';
 
 export interface CareTaskEvent {
   id: string;

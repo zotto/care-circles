@@ -177,7 +177,7 @@ async def get_care_plan(
     "/care-plans/{plan_id}/approve",
     response_model=CarePlan,
     summary="Approve care plan",
-    description="Approve care plan and make tasks available (creator only). Optional body summary updates plan name before approving."
+    description="Approve care plan and make tasks available (creator only). Optional body summary updates plan name before approving.",
 )
 async def approve_care_plan(
     plan_id: str,
@@ -186,31 +186,32 @@ async def approve_care_plan(
 ):
     """
     Approve care plan (creator only).
-    
+
     If body.summary is provided, the plan summary is updated before approving.
     Approving transitions all tasks from draft to available status.
-    
+
     Args:
         plan_id: Care plan ID
         user: Authenticated user from JWT
         body: Optional; summary to set as plan name before approving
-        
+
     Returns:
         CarePlan: Approved care plan
     """
+    logger.info("approve_care_plan called for plan_id=%s", plan_id)
     try:
         db = get_service_client()
         plan_service = CarePlanService(db)
-        
+
         if body and body.summary and body.summary.strip():
             await plan_service.update_plan_summary(
                 plan_id, user, body.summary.strip()
             )
-        
+
         plan = await plan_service.approve_plan(plan_id, user)
-        
+
         return plan
-    
+
     except HTTPException:
         raise
     except Exception as e:

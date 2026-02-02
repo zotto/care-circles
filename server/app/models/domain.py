@@ -91,7 +91,10 @@ class CareTaskEvent(BaseModel):
     """
     id: str = Field(..., description="Unique identifier for the event")
     care_task_id: str = Field(..., description="Task this event belongs to")
-    event_type: str = Field(..., description="Type: status_update, completed, or released")
+    event_type: str = Field(
+        ...,
+        description="Type: status_update, completed, released, or reopened (plan owner reopens with reason)",
+    )
     content: str = Field(..., description="Event content (status note, outcome, or reason)")
     created_by: str = Field(..., description="User ID who created the event")
     created_at: datetime = Field(..., description="Event timestamp")
@@ -99,7 +102,12 @@ class CareTaskEvent(BaseModel):
     @field_validator("event_type")
     @classmethod
     def validate_event_type(cls, v: str) -> str:
-        valid = [TaskEventType.STATUS_UPDATE, TaskEventType.COMPLETED, TaskEventType.RELEASED]
+        valid = [
+            TaskEventType.STATUS_UPDATE,
+            TaskEventType.COMPLETED,
+            TaskEventType.RELEASED,
+            TaskEventType.REOPENED,
+        ]
         if v not in valid:
             raise ValueError(f"event_type must be one of: {valid}")
         return v

@@ -125,6 +125,7 @@ class TaskEventType:
     STATUS_UPDATE = "status_update"
     COMPLETED = "completed"
     RELEASED = "released"
+    REOPENED = "reopened"
 
 
 class TaskEventConstants:

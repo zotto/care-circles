@@ -366,7 +366,86 @@ class TaskService:
         except Exception as e:
             logger.error(f"Error completing task: {str(e)}")
             raise
-    
+
+    async def reopen_task(
+        self,
+        task_id: str,
+        user: AuthUser,
+        reason: str,
+    ) -> Dict[str, Any]:
+        """
+        Reopen a completed task (plan owner only). Records reason in task diary and
+        re-assigns the task to the previous task owner so they can continue working.
+
+        Args:
+            task_id: Task ID
+            user: Authenticated user (must be plan owner)
+            reason: Reason for reopening (required)
+
+        Returns:
+            dict: Reopened task
+
+        Raises:
+            HTTPException: If not plan owner, task not completed, or reason empty
+        """
+        reason_stripped = (reason or "").strip()
+        if not reason_stripped:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please provide a reason for reopening the task",
+            )
+        if len(reason_stripped) > TaskEventConstants.MAX_CONTENT_LENGTH:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Reason exceeds maximum length of {TaskEventConstants.MAX_CONTENT_LENGTH}",
+            )
+        try:
+            task = self.task_repo.get_by_id(task_id)
+
+            if not task:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Task not found",
+                )
+
+            if task["status"] != TaskStatusConstants.COMPLETED:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Only completed tasks can be reopened",
+                )
+
+            previous_claimed_by = task.get("claimed_by")
+            if not previous_claimed_by:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Task has no previous owner to re-assign",
+                )
+
+            if not self._is_plan_creator(task["care_plan_id"], user.user_id):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only the plan owner can reopen tasks",
+                )
+
+            self.event_repo.create_event(
+                care_task_id=task_id,
+                event_type=TaskEventType.REOPENED,
+                content=reason_stripped,
+                created_by=user.user_id,
+            )
+            reopened_task = self.task_repo.reopen_task(task_id, previous_claimed_by)
+
+            logger.info(
+                f"Plan owner {user.user_id} reopened task {task_id}, re-assigned to {previous_claimed_by}"
+            )
+            return reopened_task
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error reopening task: {str(e)}")
+            raise
+
     async def update_task(
         self,
         task_id: str,

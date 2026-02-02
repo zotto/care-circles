@@ -499,9 +499,10 @@ const showAIAnalysisSection = computed(() => {
   return requestSubmitted.value && !isJobComplete.value;
 });
 
+/** In edit mode we show the section immediately (with loading state). In create flow, only after job complete and tasks ready. */
 const showReviewSection = computed(() => {
   if (editMode.value) {
-    return editPlanLoaded.value;
+    return true;
   }
   return requestSubmitted.value && isJobComplete.value && careStore.hasTasks();
 });

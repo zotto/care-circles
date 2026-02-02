@@ -135,6 +135,7 @@ class CareTask(BaseModel):
     priority: str = Field(default=TaskPriority.MEDIUM, description="Task priority level")
     status: str = Field(default=TaskStatus.DRAFT, description="Current task status")
     claimed_by: Optional[str] = Field(None, description="User ID who claimed the task")
+    claimed_by_name: Optional[str] = Field(None, description="Full name of user who claimed the task (from users table)")
     claimed_at: Optional[datetime] = Field(None, description="Task claim timestamp")
     completed_at: Optional[datetime] = Field(None, description="Task completion timestamp")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")

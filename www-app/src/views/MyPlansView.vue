@@ -98,17 +98,18 @@
                     {{ task.priority.toUpperCase() }}
                   </span>
                   <span class="task-item__status" :class="`status-${task.status}`">
-                    {{ formatTaskStatus(task.status) }}
+                    <template v-if="(task.status === 'claimed' || task.status === 'completed') && task.claimed_by_name">
+                      {{ task.status === 'completed' ? `Completed by ${task.claimed_by_name}` : `Claimed by ${task.claimed_by_name}` }}
+                    </template>
+                    <template v-else>
+                      {{ formatTaskStatus(task.status) }}
+                    </template>
                   </span>
                 </div>
                 <h5 class="task-item__title">{{ task.title }}</h5>
                 <p class="task-item__description">{{ task.description }}</p>
                 <div class="task-item__meta">
                   <span class="task-item__category">{{ task.category }}</span>
-                  <span v-if="task.claimed_by" class="task-item__claimed">
-                    <BaseIcon :path="mdiAccountCheck" :size="14" />
-                    Claimed
-                  </span>
                 </div>
                 <!-- Claim Button for Plan Owner -->
                 <!-- Show button if user is plan owner and task is available (not claimed/completed) -->
@@ -313,6 +314,7 @@ interface CareTask {
   priority: 'low' | 'medium' | 'high';
   status: string;
   claimed_by?: string;
+  claimed_by_name?: string;
   created_at: string;
 }
 

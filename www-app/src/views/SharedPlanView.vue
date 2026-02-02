@@ -65,7 +65,9 @@
                     {{ task.priority.toUpperCase() }}
                   </span>
                   <span class="task-status" :class="`status-${task.status}`">
-                    {{ task.status }}
+                    {{ (task.status === 'claimed' || task.status === 'completed') && task.claimed_by_name
+                      ? (task.status === 'completed' ? `Completed by ${task.claimed_by_name}` : `Claimed by ${task.claimed_by_name}`)
+                      : (task.status === 'completed' ? 'Completed' : task.status === 'claimed' ? 'Already claimed' : task.status) }}
                   </span>
                 </div>
 
@@ -83,12 +85,6 @@
                 <button @click.stop="handleClaimTask(task.id)" class="claim-button">
                   Claim Task
                 </button>
-              </div>
-
-              <div v-else-if="task.status === 'claimed' || task.status === 'completed'" class="task-claimed-info">
-                <span class="claimed-label">
-                  {{ task.status === 'completed' ? 'Completed' : 'Already claimed' }}
-                </span>
               </div>
             </div>
           </div>
@@ -154,7 +150,9 @@
               {{ selectedTask.priority.toUpperCase() }}
             </span>
             <span class="task-status" :class="`status-${selectedTask.status}`">
-              {{ selectedTask.status }}
+              {{ (selectedTask.status === 'claimed' || selectedTask.status === 'completed') && selectedTask.claimed_by_name
+                ? (selectedTask.status === 'completed' ? `Completed by ${selectedTask.claimed_by_name}` : `Claimed by ${selectedTask.claimed_by_name}`)
+                : (selectedTask.status === 'completed' ? 'Completed' : selectedTask.status === 'claimed' ? 'Already claimed' : selectedTask.status) }}
             </span>
             <span class="task-category">{{ selectedTask.category }}</span>
           </div>
@@ -165,9 +163,6 @@
             <button @click="handleClaimTaskFromDetail(selectedTask.id)" class="claim-button">
               Claim Task
             </button>
-          </div>
-          <div v-else-if="selectedTask.status === 'claimed' || selectedTask.status === 'completed'" class="task-detail-modal__claimed">
-            {{ selectedTask.status === 'completed' ? 'Completed' : 'Already claimed' }}
           </div>
         </div>
       </div>

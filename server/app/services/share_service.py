@@ -11,6 +11,7 @@ from fastapi import HTTPException, status
 from supabase import Client
 from app.db.repositories.care_request_repository import CareRequestRepository
 from app.db.repositories.care_plan_repository import CarePlanRepository
+from app.db.repositories.care_task_repository import CareTaskRepository
 from app.middleware.auth import AuthUser
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class ShareService:
         self.db = db
         self.request_repo = CareRequestRepository(db)
         self.plan_repo = CarePlanRepository(db)
+        self.task_repo = CareTaskRepository(db)
     
     async def generate_share_link(
         self,
@@ -115,6 +117,8 @@ class ShareService:
             
             # Get tasks
             plan = self.plan_repo.get_with_tasks(plan["id"])
+            if plan.get("tasks"):
+                self.task_repo.enrich_tasks_with_claimer_name(plan["tasks"])
             
             # Combine request and plan data
             result = {

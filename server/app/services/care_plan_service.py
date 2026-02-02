@@ -102,6 +102,9 @@ class CarePlanService:
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="You don't have access to this care plan"
                     )
+            # Enrich tasks with claimer full_name for display
+            if plan.get("tasks"):
+                self.task_repo.enrich_tasks_with_claimer_name(plan["tasks"])
             return plan
         
         except HTTPException:

@@ -21,6 +21,36 @@ class CareTaskRepository(BaseRepository):
     def __init__(self, db: Client):
         super().__init__(db, "care_tasks")
     
+    def enrich_tasks_with_claimer_name(self, tasks: List[Dict[str, Any]]) -> None:
+        """
+        Enrich tasks in place with claimed_by_name (full_name from users table).
+        Uses full_name if set, otherwise email local part (e.g. rafael.zotto).
+        """
+        if not tasks:
+            return
+        claimed_by_ids = [t["claimed_by"] for t in tasks if t.get("claimed_by")]
+        if not claimed_by_ids:
+            return
+        try:
+            result = self.db.table("users").select("id, full_name, email").in_(
+                "id", list(set(claimed_by_ids))
+            ).execute()
+            id_to_name: Dict[str, str] = {}
+            for row in (result.data or []):
+                uid = row.get("id")
+                if not uid:
+                    continue
+                name = (row.get("full_name") or "").strip()
+                if not name and row.get("email"):
+                    name = (row["email"] or "").split("@")[0] or "Unknown"
+                id_to_name[uid] = name or "Unknown"
+            for t in tasks:
+                cb = t.get("claimed_by")
+                if cb:
+                    t["claimed_by_name"] = id_to_name.get(cb) or "Unknown"
+        except Exception as e:
+            logger.warning(f"Could not enrich tasks with claimer names: {e}")
+    
     def get_by_plan(self, plan_id: str) -> List[Dict[str, Any]]:
         """
         Get all tasks for a plan
@@ -36,7 +66,9 @@ class CareTaskRepository(BaseRepository):
                 "care_plan_id", plan_id
             ).order("priority", desc=True).order("created_at").execute()
             
-            return result.data
+            data = result.data or []
+            self.enrich_tasks_with_claimer_name(data)
+            return data
         
         except Exception as e:
             logger.error(f"Error getting tasks by plan: {str(e)}")
@@ -57,7 +89,9 @@ class CareTaskRepository(BaseRepository):
                 "claimed_by", user_id
             ).order("priority", desc=True).order("created_at").execute()
             
-            return result.data
+            data = result.data or []
+            self.enrich_tasks_with_claimer_name(data)
+            return data
         
         except Exception as e:
             logger.error(f"Error getting tasks by user: {str(e)}")
@@ -71,11 +105,20 @@ class CareTaskRepository(BaseRepository):
             result = self.db.table(self.table_name).select("*").eq(
                 "status", TaskStatusConstants.AVAILABLE
             ).order("priority", desc=True).order("created_at").execute()
-            return result.data
+            data = result.data or []
+            self.enrich_tasks_with_claimer_name(data)
+            return data
         
         except Exception as e:
             logger.error(f"Error getting available tasks: {str(e)}")
             raise
+    
+    def get_by_id(self, record_id: str) -> Optional[Dict[str, Any]]:
+        """Get task by ID and enrich with claimer name if claimed."""
+        task = super().get_by_id(record_id)
+        if task:
+            self.enrich_tasks_with_claimer_name([task])
+        return task
     
     def claim_task(self, task_id: str, user_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -107,6 +150,8 @@ class CareTaskRepository(BaseRepository):
             }
             
             result = self.update(task_id, updates)
+            if result:
+                self.enrich_tasks_with_claimer_name([result])
             logger.info(f"User {user_id} claimed task {task_id}")
             return result
         
@@ -132,6 +177,8 @@ class CareTaskRepository(BaseRepository):
             }
             
             result = self.update(task_id, updates)
+            if result:
+                self.enrich_tasks_with_claimer_name([result])
             logger.info(f"Released task {task_id}")
             return result
         
@@ -156,6 +203,8 @@ class CareTaskRepository(BaseRepository):
             }
 
             result = self.update(task_id, updates)
+            if result:
+                self.enrich_tasks_with_claimer_name([result])
             logger.info(f"Completed task {task_id}")
             return result
 
@@ -183,6 +232,8 @@ class CareTaskRepository(BaseRepository):
                 "claimed_at": datetime.utcnow().isoformat(),
             }
             result = self.update(task_id, updates)
+            if result:
+                self.enrich_tasks_with_claimer_name([result])
             logger.info(f"Reopened task {task_id}, re-assigned to {previous_claimed_by}")
             return result
         except Exception as e:

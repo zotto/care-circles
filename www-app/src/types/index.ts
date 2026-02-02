@@ -37,6 +37,8 @@ export interface CareTask {
   priority: 'low' | 'medium' | 'high';
   status: 'draft' | 'active' | 'available' | 'claimed' | 'completed';
   created_at: string;
+  /** Full name of user who claimed the task (from users table). Shown as "claimed by X" / "completed by X". */
+  claimed_by_name?: string;
 }
 
 /** Task diary event type */

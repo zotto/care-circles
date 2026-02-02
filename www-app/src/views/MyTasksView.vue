@@ -28,7 +28,9 @@
               {{ task.priority.toUpperCase() }}
             </span>
             <span class="task-status" :class="`status-${task.status}`">
-              {{ task.status }}
+              {{ (task.status === 'claimed' || task.status === 'completed') && task.claimed_by_name
+                ? (task.status === 'completed' ? `Completed by ${task.claimed_by_name}` : `Claimed by ${task.claimed_by_name}`)
+                : task.status }}
             </span>
           </div>
 
@@ -474,6 +476,8 @@ function closeErrorDialog() {
 
 .task-header {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }

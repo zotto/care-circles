@@ -5,6 +5,7 @@ JWT token validation and user extraction for protected routes.
 """
 
 import logging
+import time
 from typing import Optional
 from functools import lru_cache
 from fastapi import HTTPException, status, Depends
@@ -47,8 +48,7 @@ async def fetch_jwks() -> dict:
         HTTPException: If JWKS cannot be fetched
     """
     global _jwks_cache, _jwks_cache_time
-    import time
-    
+
     # Return cached JWKS if still valid
     if _jwks_cache and _jwks_cache_time:
         if time.time() - _jwks_cache_time < JWKS_CACHE_TTL:
@@ -365,14 +365,20 @@ def extract_user_from_token(payload: dict) -> AuthUser:
     )
 
 
+# In-memory cache: user_id -> timestamp of last "ensure user exists".
+# Skip GET+PATCH to Supabase when we've done it recently (per process, safe TTL).
+_user_ensure_cache: dict[str, float] = {}
+USER_ENSURE_CACHE_TTL = 300  # seconds; ensure user at most once per 5 min per process
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> AuthUser:
     """
     FastAPI dependency to get current authenticated user
     
-    This ensures the user exists in the database by creating/updating
-    their record on each authentication.
+    Ensures the user exists in the database by creating/updating their record.
+    This is cached per user for a short TTL to avoid GET+PATCH on every request.
     
     Usage:
         @app.get("/protected")
@@ -399,31 +405,33 @@ async def get_current_user(
     payload = await verify_jwt_token(token)
     user = extract_user_from_token(payload)
     
-    # Ensure user exists in database (upsert pattern)
-    try:
-        from app.db import get_service_client
-        from app.db.repositories.user_repository import UserRepository
-        
-        db = get_service_client()
-        user_repo = UserRepository(db)
-        
-        # Create or update user record
-        full_name = payload.get("user_metadata", {}).get("full_name")
-        if not full_name:
-            # Fallback: use email prefix as name
-            full_name = user.email.split("@")[0]
-        
-        user_repo.create_or_update(
-            user_id=user.user_id,
-            email=user.email,
-            full_name=full_name
-        )
-        logger.debug(f"Ensured user record exists for {user.user_id}")
-    except Exception as e:
-        logger.error(f"Failed to ensure user exists in database: {str(e)}", exc_info=True)
-        # Don't fail authentication if user record creation fails
-        # The user is still authenticated, just log the error
-    
+    # Ensure user exists in database (upsert), but skip if we did it recently
+    now = time.time()
+    if user.user_id in _user_ensure_cache and (now - _user_ensure_cache[user.user_id]) < USER_ENSURE_CACHE_TTL:
+        logger.debug(f"Using cached user-ensure for {user.user_id}")
+    else:
+        try:
+            from app.db import get_service_client
+            from app.db.repositories.user_repository import UserRepository
+
+            db = get_service_client()
+            user_repo = UserRepository(db)
+
+            full_name = payload.get("user_metadata", {}).get("full_name")
+            if not full_name:
+                full_name = user.email.split("@")[0]
+
+            user_repo.create_or_update(
+                user_id=user.user_id,
+                email=user.email,
+                full_name=full_name
+            )
+            _user_ensure_cache[user.user_id] = now
+            logger.debug(f"Ensured user record exists for {user.user_id}")
+        except Exception as e:
+            logger.error(f"Failed to ensure user exists in database: {str(e)}", exc_info=True)
+            # Don't fail authentication; user is still authenticated
+
     logger.debug(f"Authenticated user: {user}")
     return user
 

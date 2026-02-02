@@ -1,5 +1,5 @@
 <template>
-  <div class="care-workflow" :class="{ 'care-workflow--focused': !requestSubmitted }">
+  <div class="care-workflow" :class="{ 'care-workflow--focused': !requestSubmitted && !editMode }">
     <!-- Background Elements -->
     <div class="care-workflow__bg-decoration">
       <div class="floating-circle floating-circle--1"></div>
@@ -9,20 +9,20 @@
     <div class="container">
       <div
         class="care-workflow__content"
-        :class="{ 'care-workflow__content--focused': !requestSubmitted }"
+        :class="{ 'care-workflow__content--focused': !requestSubmitted && !editMode }"
       >
 
-        <!-- Step 1: Care Request Form -->
+        <!-- Step 1: Care Request Form (hidden in edit mode) -->
         <section
-          v-if="!requestSubmitted"
+          v-if="!editMode && !requestSubmitted"
           class="care-workflow__section care-workflow__section--focused"
         >
           <CareRequestForm @submit="handleSubmit" />
         </section>
 
-        <!-- Step 2: Processing Status -->
+        <!-- Step 2: Processing Status (hidden in edit mode) -->
         <Transition name="section">
-          <section v-if="showAIAnalysisSection" class="care-workflow__section care-workflow__section--centered">
+          <section v-if="showAIAnalysisSection && !editMode" class="care-workflow__section care-workflow__section--centered">
             <div class="section-header section-header--centered">
               <div class="section-badge" :class="{ 'is-complete': isJobComplete }">
                 <span v-if="!isJobComplete" class="section-badge__spinner"></span>
@@ -64,7 +64,7 @@
           </section>
         </Transition>
 
-        <!-- Step 3: Review & Approve Tasks -->
+        <!-- Step 3: Review & Approve / Edit Plan -->
         <Transition name="section">
           <section v-if="showReviewSection" class="care-workflow__section">
             <div class="section-header section-header--centered">
@@ -72,15 +72,31 @@
                 <span class="section-badge__check">✓</span>
               </div>
               <div class="section-header__content">
-                <h2 class="section-header__title">Your Care Plan</h2>
+                <h2 class="section-header__title">{{ editMode ? 'Edit Plan' : 'Your Care Plan' }}</h2>
                 <p class="section-header__description">
-                  Review and customize your personalized tasks
+                  {{ editMode ? 'Update plan name and tasks, then save your changes.' : 'Review and customize your personalized tasks' }}
                 </p>
               </div>
             </div>
 
-            <!-- Error State -->
-            <BaseCard v-if="careStore.error" class="care-plan-card error-card" variant="elevated">
+            <!-- Edit mode: loading plan -->
+            <div v-if="editMode && !editPlanLoaded && !editPlanError" class="care-workflow__loading">
+              <div class="spinner"></div>
+              <p>Loading plan...</p>
+            </div>
+            <BaseCard v-else-if="editMode && editPlanError" class="care-plan-card error-card" variant="elevated">
+              <div class="error-card__content">
+                <BaseIcon :path="mdiAlertCircle" :size="48" class="error-card__icon" />
+                <h3 class="error-card__title">Unable to Load Plan</h3>
+                <p class="error-card__message">{{ editPlanError }}</p>
+                <BaseButton variant="outline" size="md" @click="router.push({ name: 'my-plans' })">
+                  Back to My Plans
+                </BaseButton>
+              </div>
+            </BaseCard>
+
+            <!-- Error State (create flow or edit loaded) -->
+            <BaseCard v-if="showPlanCard && careStore.error" class="care-plan-card error-card" variant="elevated">
               <div class="error-card__content">
                 <BaseIcon :path="mdiAlertCircle" :size="48" class="error-card__icon" />
                 <h3 class="error-card__title">Unable to Generate Tasks</h3>
@@ -89,7 +105,7 @@
             </BaseCard>
 
             <!-- Care Plan Card with Integrated Actions -->
-            <BaseCard v-else class="care-plan-card" variant="elevated">
+            <BaseCard v-else-if="showPlanCard" class="care-plan-card" variant="elevated">
               <!-- Plan Name Input (Compact) -->
               <div class="care-plan-card__plan-name">
                 <BaseInput
@@ -190,30 +206,51 @@
                 </BaseButton>
               </div>
 
-              <!-- Integrated Approve Actions Footer -->
+              <!-- Integrated Approve / Edit Actions Footer -->
               <div class="care-plan-card__footer">
                 <div class="care-plan-card__footer-info">
                   <BaseIcon :path="mdiInformationOutline" :size="16" />
                   <span>{{ validTaskCount }} task{{ validTaskCount !== 1 ? 's' : '' }} ready</span>
                 </div>
                 <div class="care-plan-card__footer-actions">
-                  <BaseButton
-                    variant="outline"
-                    size="md"
-                    @click="handleResetClick"
-                    :disabled="careStore.isApprovingPlan"
-                  >
-                    Start Over
-                  </BaseButton>
-                  <BaseButton
-                    variant="primary"
-                    size="md"
-                    @click="handleApprove"
-                    :disabled="validTaskCount === 0 || !planName || planName.trim() === '' || careStore.isApprovingPlan"
-                  >
-                    <BaseIcon :path="mdiCheckCircle" :size="18" style="margin-right: 6px;" />
-                    Approve Plan
-                  </BaseButton>
+                  <template v-if="editMode">
+                    <BaseButton
+                      variant="outline"
+                      size="md"
+                      @click="handleCancelEdit"
+                      :disabled="isSavingEdits"
+                    >
+                      Cancel
+                    </BaseButton>
+                    <BaseButton
+                      variant="primary"
+                      size="md"
+                      @click="handleSavePlanEdits"
+                      :disabled="validTaskCount === 0 || !planName || planName.trim() === '' || isSavingEdits"
+                    >
+                      <BaseIcon :path="mdiCheckCircle" :size="18" style="margin-right: 6px;" />
+                      {{ isSavingEdits ? 'Saving...' : 'Save changes' }}
+                    </BaseButton>
+                  </template>
+                  <template v-else>
+                    <BaseButton
+                      variant="outline"
+                      size="md"
+                      @click="handleResetClick"
+                      :disabled="careStore.isApprovingPlan"
+                    >
+                      Start Over
+                    </BaseButton>
+                    <BaseButton
+                      variant="primary"
+                      size="md"
+                      @click="handleApprove"
+                      :disabled="validTaskCount === 0 || !planName || planName.trim() === '' || careStore.isApprovingPlan"
+                    >
+                      <BaseIcon :path="mdiCheckCircle" :size="18" style="margin-right: 6px;" />
+                      Approve Plan
+                    </BaseButton>
+                  </template>
                 </div>
               </div>
             </BaseCard>
@@ -387,6 +424,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import CareRequestForm from '@/components/organisms/CareRequestForm.vue';
 import BaseCard from '@/components/atoms/BaseCard.vue';
 import BaseButton from '@/components/atoms/BaseButton.vue';
@@ -396,8 +434,9 @@ import BaseInput from '@/components/atoms/BaseInput.vue';
 import BaseTextArea from '@/components/atoms/BaseTextArea.vue';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
 import { useCareStore } from '@/stores/careStore';
+import { api } from '@/services/api';
 import type { CareRequest, CareTask } from '@/types';
-import { PROCESSING_STEPS, TASK_PRIORITIES, PLAN_APPROVAL } from '@/constants';
+import { PROCESSING_STEPS, TASK_PRIORITIES, PLAN_APPROVAL, CARE_PLAN } from '@/constants';
 import {
   validateTasksForApproval,
   getValidTasksForSubmit,
@@ -415,6 +454,8 @@ import {
   mdiCheck,
 } from '@mdi/js';
 
+const route = useRoute();
+const router = useRouter();
 const careStore = useCareStore();
 const requestSubmitted = ref(false);
 const showApprovalSuccess = ref(false);
@@ -430,6 +471,14 @@ const errorDialogTitle = ref('Error');
 const errorDialogMessage = ref('');
 const taskToDelete = ref<string | null>(null);
 const planName = ref('Care Plan');
+
+// Plan edit mode (from My Plans → Edit)
+const editMode = computed(() => route.name === 'plan-edit' && !!route.params.planId);
+const editPlanId = computed(() => (route.params.planId as string) || '');
+const editPlanLoaded = ref(false);
+const editPlanError = ref<string | null>(null);
+const initialServerTaskIds = ref<string[]>([]);
+const isSavingEdits = ref(false);
 
 const currentStepIndex = computed(() => {
   if (!careStore.activeJob) return -1;
@@ -451,8 +500,14 @@ const showAIAnalysisSection = computed(() => {
 });
 
 const showReviewSection = computed(() => {
+  if (editMode.value) {
+    return editPlanLoaded.value;
+  }
   return requestSubmitted.value && isJobComplete.value && careStore.hasTasks();
 });
+
+/** Show plan card (tasks + footer) when create flow has tasks or edit mode has loaded */
+const showPlanCard = computed(() => !editMode.value || editPlanLoaded.value);
 
 /** Number of tasks that are non-empty and have title, description, and priority (ready to submit) */
 const validTaskCount = computed(() => getValidTasksForSubmit(careStore.tasks ?? []).length);
@@ -500,13 +555,39 @@ watch(
   }
 );
 
-onMounted(() => {
+onMounted(async () => {
   window.scrollTo(0, 0);
   if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
   }
   // Close dropdowns when clicking outside
   document.addEventListener('click', handleClickOutside);
+
+  // Edit mode: load existing plan and tasks
+  if (editMode.value && editPlanId.value) {
+    try {
+      editPlanError.value = null;
+      const plan = await api.getCarePlan(editPlanId.value);
+      const tasksData = plan.tasks ?? [];
+      const mappedTasks: CareTask[] = tasksData.map((t: any) => ({
+        id: t.id,
+        care_circle_id: t.care_circle_id ?? '',
+        care_request_id: t.care_request_id ?? '',
+        title: t.title ?? '',
+        description: t.description ?? '',
+        category: t.category ?? CARE_PLAN.DEFAULT_TASK_CATEGORY,
+        priority: (t.priority ?? CARE_PLAN.DEFAULT_TASK_PRIORITY) as 'low' | 'medium' | 'high',
+        status: t.status ?? 'draft',
+        created_at: t.created_at ?? new Date().toISOString(),
+      }));
+      careStore.setPlanForEdit(editPlanId.value, mappedTasks);
+      planName.value = (plan.summary ?? 'Care Plan').trim();
+      initialServerTaskIds.value = mappedTasks.map((t) => t.id);
+      editPlanLoaded.value = true;
+    } catch (err: any) {
+      editPlanError.value = err?.message ?? 'Failed to load plan';
+    }
+  }
 });
 
 onUnmounted(() => {
@@ -594,6 +675,62 @@ const handleApprove = () => {
   }
   const tasksToSubmit = getValidTasksForSubmit(careStore.tasks ?? []);
   careStore.approvePlan(planName.value.trim(), tasksToSubmit);
+};
+
+const handleCancelEdit = () => {
+  router.push({ name: 'my-plans' });
+};
+
+const handleSavePlanEdits = async () => {
+  if (!editPlanId.value || !planName.value?.trim()) return;
+  const validation = validateTasksForApproval(careStore.tasks ?? []);
+  if (!validation.valid) {
+    const nums = validation.invalidTaskNumbers;
+    const taskLabel =
+      nums?.length && nums.length <= 10
+        ? nums.length === 1
+          ? `Task #${nums[0]}`
+          : `Tasks #${nums!.map((n) => n).join(', #')}`
+        : null;
+    const message = taskLabel
+      ? `Please add a title, description, and priority to every task before saving.\n\nMissing: ${taskLabel}`
+      : (validation.message ?? 'Please complete all tasks.');
+    showError('Tasks incomplete', message);
+    return;
+  }
+  const tasksToUse = careStore.tasks ?? [];
+  const validTasks = getValidTasksForSubmit(tasksToUse);
+  if (validTasks.length === 0) {
+    showError('No valid tasks', 'Add at least one task with title, description, and priority.');
+    return;
+  }
+  isSavingEdits.value = true;
+  try {
+    await api.updateCarePlan(editPlanId.value, planName.value.trim());
+    const currentIds = new Set(tasksToUse.map((t) => t.id));
+    for (const task of tasksToUse) {
+      const payload = {
+        title: task.title.trim(),
+        description: task.description.trim(),
+        category: task.category || CARE_PLAN.DEFAULT_TASK_CATEGORY,
+        priority: task.priority || CARE_PLAN.DEFAULT_TASK_PRIORITY,
+      };
+      if (task.id.startsWith('draft-')) {
+        await api.addTaskToPlan(editPlanId.value, payload);
+      } else {
+        await api.patch(`/tasks/${task.id}`, payload);
+      }
+    }
+    const idsToDelete = initialServerTaskIds.value.filter((id) => !currentIds.has(id));
+    for (const id of idsToDelete) {
+      await api.deleteCareTask(id);
+    }
+    router.push({ name: 'my-plans', query: { updated: '1' } });
+  } catch (err: any) {
+    showError('Failed to save plan', err?.message ?? 'Could not save changes. Please try again.');
+  } finally {
+    isSavingEdits.value = false;
+  }
 };
 
 function showError(title: string, message: string) {
@@ -939,6 +1076,25 @@ const getPriorityVariant = (priority: string): 'default' | 'success' | 'warning'
   background: var(--color-success);
   border-color: var(--color-success);
   color: white;
+}
+
+.care-workflow__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl);
+  color: var(--color-text-secondary);
+}
+
+.care-workflow__loading .spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: var(--spacing-md);
 }
 
 .spinner-small {

@@ -207,18 +207,27 @@ export const useCareStore = defineStore('care', () => {
 
   /**
    * Adds a new empty draft task to the plan (e.g. for manual entry).
-   * Requires an active care request (latestRequest).
+   * Works in create flow (latestRequest) or edit flow (currentPlanId + existing tasks).
    */
   const addTask = (): CareTask | null => {
     const latestReq = latestRequest();
-    if (!latestReq) {
+    let careCircleId = '';
+    let careRequestId = '';
+    if (latestReq) {
+      careCircleId = latestReq.care_circle_id ?? '';
+      careRequestId = latestReq.id;
+    } else if (currentPlanId.value && tasks.value.length > 0) {
+      const first = tasks.value[0];
+      careCircleId = first?.care_circle_id ?? '';
+      careRequestId = first?.care_request_id ?? '';
+    } else if (!currentPlanId.value) {
       error.value = 'No care request found. Submit a request first.';
       return null;
     }
     const newTask: CareTask = {
       id: `draft-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      care_circle_id: latestReq.care_circle_id ?? '',
-      care_request_id: latestReq.id,
+      care_circle_id: careCircleId,
+      care_request_id: careRequestId,
       title: '',
       description: '',
       category: CARE_PLAN.DEFAULT_TASK_CATEGORY,
@@ -308,6 +317,16 @@ export const useCareStore = defineStore('care', () => {
     error.value = null;
   };
 
+  /**
+   * Hydrate store for editing an existing plan (no care request/job).
+   * Used when opening the dashboard in plan-edit mode.
+   */
+  const setPlanForEdit = (planId: string, planTasks: CareTask[]) => {
+    currentPlanId.value = planId;
+    tasks.value = [...planTasks];
+    error.value = null;
+  };
+
   return {
     // State
     currentCareCircle,
@@ -341,5 +360,6 @@ export const useCareStore = defineStore('care', () => {
     clearError,
     approvePlan,
     reset,
+    setPlanForEdit,
   };
 });

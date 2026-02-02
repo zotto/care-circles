@@ -287,6 +287,31 @@ class ApiClient {
     });
     return response.data;
   }
+
+  /**
+   * Delete a care plan (creator only). Tasks are cascade-deleted.
+   */
+  async deleteCarePlan(planId: string): Promise<void> {
+    await this.client.delete(`/care-plans/${planId}`);
+  }
+
+  /**
+   * Add a task to an existing plan (creator only).
+   */
+  async addTaskToPlan(
+    planId: string,
+    task: { title: string; description?: string; category?: string; priority?: string }
+  ): Promise<any> {
+    const response = await this.client.post(`/care-plans/${planId}/tasks`, task);
+    return response.data;
+  }
+
+  /**
+   * Delete a task (plan creator only).
+   */
+  async deleteCareTask(taskId: string): Promise<void> {
+    await this.client.delete(`/tasks/${taskId}`);
+  }
 }
 
 /**

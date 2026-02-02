@@ -142,6 +142,27 @@ export const CARE_PLAN = {
   },
 } as const;
 
+/** Plan owner actions (edit/delete) copy */
+export const PLAN_ACTIONS = {
+  EDIT: {
+    LABEL: 'Edit',
+    SAVE: 'Save',
+    CANCEL: 'Cancel',
+    SUMMARY_MAX_LENGTH: 200,
+    SUCCESS_TITLE: 'Plan updated',
+    SUCCESS_MESSAGE: 'Plan name has been updated.',
+  },
+  DELETE: {
+    TITLE: 'Delete plan?',
+    MESSAGE: 'This plan and its tasks will be permanently removed. This cannot be undone.',
+    CONFIRM: 'Delete plan',
+    CANCEL: 'Cancel',
+    SUCCESS_TITLE: 'Plan deleted',
+    SUCCESS_MESSAGE: 'The plan has been removed.',
+    ERROR_TITLE: 'Failed to delete plan',
+  },
+} as const;
+
 /** Plan approval flow: processing state and success/error copy (single responsibility: UI copy) */
 export const PLAN_APPROVAL = {
   PROCESSING: {

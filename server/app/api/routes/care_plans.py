@@ -24,6 +24,14 @@ class PlanSummaryUpdate(BaseModel):
     summary: str
 
 
+class AddTaskToPlanRequest(BaseModel):
+    """Request model for adding a task to an existing plan"""
+    title: str
+    description: str = ""
+    category: str = "Other"
+    priority: str = "medium"
+
+
 class CreatePlanRequest(BaseModel):
     """Request model for creating a care plan from a care request"""
     care_request_id: str
@@ -274,7 +282,7 @@ async def update_care_plan(
         )
         
         return plan
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -282,4 +290,85 @@ async def update_care_plan(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update care plan"
+        )
+
+
+@router.post(
+    "/care-plans/{plan_id}/tasks",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add task to plan",
+    description="Add a task to an existing plan (creator only)"
+)
+async def add_task_to_plan(
+    plan_id: str,
+    body: AddTaskToPlanRequest,
+    user: AuthUser = Depends(get_current_user)
+):
+    """
+    Add a task to an existing plan (creator only).
+
+    New task is created in draft status.
+
+    Args:
+        plan_id: Care plan ID
+        body: Task title, description, category, priority
+        user: Authenticated user from JWT
+
+    Returns:
+        dict: Created task
+    """
+    try:
+        db = get_service_client()
+        plan_service = CarePlanService(db)
+
+        task = await plan_service.add_task_to_plan(
+            plan_id,
+            user,
+            body.model_dump()
+        )
+        return task
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding task to plan: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to add task to plan"
+        )
+
+
+@router.delete(
+    "/care-plans/{plan_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete care plan",
+    description="Delete a care plan and its tasks (creator only)"
+)
+async def delete_care_plan(
+    plan_id: str,
+    user: AuthUser = Depends(get_current_user)
+):
+    """
+    Delete a care plan (creator only).
+
+    Tasks are cascade-deleted by the database.
+
+    Args:
+        plan_id: Care plan ID
+        user: Authenticated user from JWT
+    """
+    try:
+        db = get_service_client()
+        plan_service = CarePlanService(db)
+
+        await plan_service.delete_plan(plan_id, user)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting care plan: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete care plan"
         )

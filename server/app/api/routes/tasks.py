@@ -259,3 +259,36 @@ async def update_task(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update task"
         )
+
+
+@router.delete(
+    "/tasks/{task_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete task",
+    description="Delete a task (plan creator only)"
+)
+async def delete_task(
+    task_id: str,
+    user: AuthUser = Depends(get_current_user)
+):
+    """
+    Delete a task (plan creator only).
+
+    Args:
+        task_id: Task ID
+        user: Authenticated user from JWT
+    """
+    try:
+        db = get_service_client()
+        task_service = TaskService(db)
+
+        await task_service.delete_task(task_id, user)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting task: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete task"
+        )

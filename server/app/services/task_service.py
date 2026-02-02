@@ -319,6 +319,45 @@ class TaskService:
             logger.error(f"Error updating task: {str(e)}")
             raise
     
+    async def delete_task(
+        self,
+        task_id: str,
+        user: AuthUser
+    ) -> None:
+        """
+        Delete a task (plan creator only).
+
+        Args:
+            task_id: Task ID
+            user: Authenticated user
+
+        Raises:
+            HTTPException: If task not found or user is not the plan creator
+        """
+        try:
+            task = self.task_repo.get_by_id(task_id)
+
+            if not task:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Task not found"
+                )
+
+            if not self._is_plan_creator(task["care_plan_id"], user.user_id):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only the plan creator can delete tasks"
+                )
+
+            self.task_repo.delete(task_id)
+            logger.info(f"User {user.user_id} deleted task {task_id}")
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error deleting task: {str(e)}")
+            raise
+
     def _is_plan_creator(self, plan_id: str, user_id: str) -> bool:
         """Check if user created the plan"""
         try:
@@ -330,5 +369,5 @@ class TaskService:
                 return False
             
             return plan.data[0]["created_by"] == user_id
-        except:
+        except Exception:
             return False

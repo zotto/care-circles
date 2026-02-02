@@ -250,9 +250,107 @@ class CarePlanService:
                 )
             
             return self.plan_repo.update(plan_id, {"summary": summary})
-        
+
         except HTTPException:
             raise
         except Exception as e:
             logger.error(f"Error updating plan summary: {str(e)}")
+            raise
+
+    async def delete_plan(
+        self,
+        plan_id: str,
+        user: AuthUser
+    ) -> None:
+        """
+        Delete a care plan (creator only).
+
+        Tasks are cascade-deleted by the database.
+
+        Args:
+            plan_id: Plan ID
+            user: Authenticated user
+
+        Raises:
+            HTTPException: If plan not found or user is not the creator
+        """
+        try:
+            plan = self.plan_repo.get_by_id(plan_id)
+
+            if not plan:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Care plan not found"
+                )
+
+            if plan["created_by"] != user.user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only the plan creator can delete it"
+                )
+
+            self.plan_repo.delete(plan_id)
+            logger.info(f"User {user.user_id} deleted plan {plan_id}")
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error deleting care plan: {str(e)}")
+            raise
+
+    async def add_task_to_plan(
+        self,
+        plan_id: str,
+        user: AuthUser,
+        task_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Add a single task to an existing plan (creator only).
+
+        New task is created in draft status so the owner can adjust before approving.
+
+        Args:
+            plan_id: Plan ID
+            user: Authenticated user
+            task_data: Task fields (title, description, category, priority)
+
+        Returns:
+            dict: Created task
+
+        Raises:
+            HTTPException: If plan not found or user is not the creator
+        """
+        try:
+            plan = self.plan_repo.get_by_id(plan_id)
+
+            if not plan:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Care plan not found"
+                )
+
+            if plan["created_by"] != user.user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only the plan creator can add tasks"
+                )
+
+            task_payload = {
+                "care_plan_id": plan_id,
+                "care_request_id": plan["care_request_id"],
+                "care_circle_id": plan["care_circle_id"],
+                "title": task_data.get("title", "").strip() or "New task",
+                "description": task_data.get("description", "").strip() or "",
+                "category": task_data.get("category", "Other"),
+                "priority": task_data.get("priority", "medium"),
+                "status": TaskStatusConstants.DRAFT,
+            }
+            created = self.task_repo.create(task_payload)
+            logger.info(f"User {user.user_id} added task to plan {plan_id}")
+            return created
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error adding task to plan: {str(e)}")
             raise

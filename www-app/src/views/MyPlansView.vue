@@ -39,6 +39,25 @@
               </span>
             </div>
             <div class="plan-card__header-right">
+              <!-- Owner actions: Edit plan & tasks, Delete -->
+              <template v-if="isPlanOwner(plan)">
+                <button
+                  type="button"
+                  class="icon-button"
+                  title="Edit plan and tasks"
+                  @click="goToEditPlan(plan.id)"
+                >
+                  <BaseIcon :path="mdiPencil" :size="18" />
+                </button>
+                <button
+                  type="button"
+                  class="icon-button icon-button--danger"
+                  :title="PLAN_ACTIONS.DELETE.CONFIRM"
+                  @click="openDeleteConfirm(plan)"
+                >
+                  <BaseIcon :path="mdiDeleteOutline" :size="18" />
+                </button>
+              </template>
               <button
                 @click="copyPlanLink(plan.id)"
                 class="copy-link-button"
@@ -147,17 +166,32 @@
       :icon="mdiAlertCircle"
       @confirm="closeErrorDialog"
     />
+
+    <!-- Delete Plan Confirmation -->
+    <ConfirmDialog
+      ref="deleteDialog"
+      :title="PLAN_ACTIONS.DELETE.TITLE"
+      :message="PLAN_ACTIONS.DELETE.MESSAGE"
+      :confirm-text="PLAN_ACTIONS.DELETE.CONFIRM"
+      :cancel-text="PLAN_ACTIONS.DELETE.CANCEL"
+      variant="danger"
+      :icon="mdiAlertCircle"
+      :loading-text="'Deleting...'"
+      @confirm="confirmDelete"
+      @cancel="cancelDelete"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { api } from '@/services/api';
 import { useAuthStore } from '@/stores/authStore';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import ConfirmDialog from '@/components/organisms/ConfirmDialog.vue';
+import { PLAN_ACTIONS } from '@/constants';
 import {
   mdiFileDocumentMultipleOutline,
   mdiChevronDown,
@@ -168,6 +202,8 @@ import {
   mdiAlertCircle,
   mdiContentCopy,
   mdiCheck,
+  mdiPencil,
+  mdiDeleteOutline,
 } from '@mdi/js';
 
 interface CarePlan {
@@ -193,6 +229,7 @@ interface CareTask {
 }
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
 const plans = ref<CarePlan[]>([]);
@@ -205,15 +242,21 @@ const claimingTaskId = ref<string | null>(null);
 const copiedPlanId = ref<string | null>(null);
 const successDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
 const errorDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
+const deleteDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
 const successDialogTitle = ref('Success');
 const successDialogMessage = ref('');
 const errorDialogTitle = ref('Error');
 const errorDialogMessage = ref('');
+const pendingDeletePlanId = ref<string | null>(null);
 
 onMounted(async () => {
-  // Initialize auth store to ensure user is loaded
   await authStore.initialize();
   await loadPlans();
+  // Reload when returning from plan edit
+  if (route.query.updated === '1') {
+    router.replace({ name: 'my-plans', query: {} });
+    await loadPlans();
+  }
 });
 
 async function loadPlans() {
@@ -328,14 +371,43 @@ function goToDashboard() {
 }
 
 function isPlanOwner(plan: CarePlan): boolean {
-  const isOwner = authStore.user?.id === plan.created_by;
-  console.log('isPlanOwner check:', {
-    userId: authStore.user?.id,
-    planCreatedBy: plan.created_by,
-    isOwner,
-    planId: plan.id
-  });
-  return isOwner;
+  return authStore.user?.id === plan.created_by;
+}
+
+function goToEditPlan(planId: string) {
+  router.push({ name: 'plan-edit', params: { planId } });
+}
+
+function openDeleteConfirm(plan: CarePlan) {
+  pendingDeletePlanId.value = plan.id;
+  deleteDialog.value?.open();
+}
+
+function cancelDelete() {
+  pendingDeletePlanId.value = null;
+  deleteDialog.value?.close();
+}
+
+async function confirmDelete() {
+  const planId = pendingDeletePlanId.value;
+  if (!planId) {
+    cancelDelete();
+    return;
+  }
+  deleteDialog.value?.setLoading(true);
+  try {
+    await api.deleteCarePlan(planId);
+    deleteDialog.value?.setLoading(false);
+    cancelDelete();
+    await loadPlans();
+  } catch (err: any) {
+    deleteDialog.value?.setLoading(false);
+    errorDialogTitle.value = PLAN_ACTIONS.DELETE.ERROR_TITLE;
+    errorDialogMessage.value = err.message || 'Could not delete plan. Please try again.';
+    deleteDialog.value?.close();
+    cancelDelete();
+    errorDialog.value?.open();
+  }
 }
 
 async function handleClaimTask(planId: string, taskId: string) {
@@ -490,6 +562,32 @@ async function handleClaimTask(planId: string, taskId: string) {
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   margin: 0 0 var(--spacing-xs);
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.icon-button:hover {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.icon-button--danger:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .plan-card__header-right {

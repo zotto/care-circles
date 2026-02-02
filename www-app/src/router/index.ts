@@ -42,6 +42,15 @@ const router = createRouter({
       },
     },
     {
+      path: '/plans/:planId/edit',
+      name: 'plan-edit',
+      component: UnifiedWorkflowView,
+      meta: {
+        title: 'Edit Plan - Care Circles',
+        requiresAuth: true,
+      },
+    },
+    {
       path: '/my-plans',
       name: 'my-plans',
       component: () => import('@/views/MyPlansView.vue'),

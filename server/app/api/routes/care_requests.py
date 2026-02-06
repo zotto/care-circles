@@ -48,11 +48,18 @@ async def create_care_request(
         CareRequestResponse: The created care request and job ID
     """
     from app.main import get_job_runner
+    from app.services.care_plan_service import CarePlanService
     
     try:
         logger.info(f"Received care request: narrative_length={len(request.narrative) if request.narrative else 0}")
         
         db = get_service_client()
+        
+        # Validate plan limit BEFORE processing to avoid wasting tokens
+        plan_service = CarePlanService(db)
+        plan_service.plan_limit_validator.validate_can_create_plan(user.user_id)
+        logger.info(f"Plan limit validation passed for user {user.user_id}")
+        
         request_repo = CareRequestRepository(db)
         
         care_request_data = {

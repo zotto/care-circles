@@ -105,6 +105,12 @@ class PlanStatusConstants:
     ACTIVE = "active"
 
 
+class PlanLimitConstants:
+    """Care plan limit constants"""
+    
+    MAX_OPEN_PLANS_PER_USER = 3
+
+
 class CircleMemberRole:
     """Care circle member role constants"""
     

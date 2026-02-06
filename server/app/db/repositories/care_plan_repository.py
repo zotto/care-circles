@@ -122,3 +122,32 @@ class CarePlanRepository(BaseRepository):
         except Exception as e:
             logger.error(f"Error getting plan with tasks: {str(e)}")
             raise
+    
+    def count_open_plans_by_creator(self, user_id: str) -> int:
+        """
+        Count open plans (draft or approved) created by a user
+        
+        Open plans are those with status 'draft' or 'approved'.
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            int: Number of open plans
+        """
+        try:
+            result = self.db.table(self.table_name).select(
+                "id", count="exact"
+            ).eq(
+                "created_by", user_id
+            ).in_(
+                "status", [PlanStatusConstants.DRAFT, PlanStatusConstants.APPROVED]
+            ).execute()
+            
+            count = result.count if result.count is not None else 0
+            logger.debug(f"User {user_id} has {count} open plans")
+            return count
+        
+        except Exception as e:
+            logger.error(f"Error counting open plans: {str(e)}")
+            raise

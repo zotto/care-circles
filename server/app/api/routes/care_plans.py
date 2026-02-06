@@ -383,3 +383,43 @@ async def delete_care_plan(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete care plan"
         )
+
+
+@router.get(
+    "/care-plans/limits/info",
+    response_model=dict,
+    summary="Get plan limit info",
+    description="Get information about plan creation limits for the current user"
+)
+async def get_plan_limit_info(
+    user: AuthUser = Depends(get_current_user)
+):
+    """
+    Get plan limit information for the current user
+    
+    Returns information about:
+    - Number of open plans
+    - Maximum allowed open plans
+    - Remaining plan slots
+    - Whether user can create a new plan
+    
+    Args:
+        user: Authenticated user from JWT
+        
+    Returns:
+        dict: Plan limit information
+    """
+    try:
+        db = get_service_client()
+        plan_service = CarePlanService(db)
+        
+        limit_info = await plan_service.get_plan_limit_info(user)
+        
+        return limit_info
+    
+    except Exception as e:
+        logger.error(f"Error getting plan limit info: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get plan limit information"
+        )

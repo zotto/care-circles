@@ -14,6 +14,7 @@ from app.db.repositories.care_request_repository import CareRequestRepository
 from app.db.repositories.care_task_repository import CareTaskRepository
 from app.middleware.auth import AuthUser
 from app.config.constants import PlanStatusConstants, TaskStatusConstants
+from app.services.validators.plan_limit_validator import PlanLimitValidator
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class CarePlanService:
         self.plan_repo = CarePlanRepository(db)
         self.request_repo = CareRequestRepository(db)
         self.task_repo = CareTaskRepository(db)
+        self.plan_limit_validator = PlanLimitValidator(self.plan_repo)
     
     async def create_plan(
         self,
@@ -38,8 +40,26 @@ class CarePlanService:
         Create a care plan with tasks.
 
         Typically called by the agent pipeline after processing a care request.
+        
+        Note: Plan limit validation should occur at care request creation to avoid
+        wasting tokens. This is a secondary safety check.
+        
+        Args:
+            care_request_id: Care request ID
+            created_by: User ID creating the plan
+            summary: Plan summary
+            tasks: List of task dictionaries
+            
+        Returns:
+            dict: Created plan with tasks
+            
+        Raises:
+            HTTPException: If user has reached maximum open plans limit
         """
         try:
+            # Secondary validation check (primary check is at care request creation)
+            self.plan_limit_validator.validate_can_create_plan(created_by)
+            
             plan_data = {
                 "care_request_id": care_request_id,
                 "created_by": created_by,
@@ -61,6 +81,8 @@ class CarePlanService:
             logger.info(f"Created care plan {plan['id']} with {len(created_tasks)} tasks")
             return plan
         
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Error creating care plan: {str(e)}")
             raise
@@ -335,4 +357,21 @@ class CarePlanService:
             raise
         except Exception as e:
             logger.error(f"Error adding task to plan: {str(e)}")
+            raise
+    
+    async def get_plan_limit_info(self, user: AuthUser) -> Dict[str, Any]:
+        """
+        Get plan limit information for a user
+        
+        Args:
+            user: Authenticated user
+            
+        Returns:
+            dict: Plan limit information including open plans count and remaining slots
+        """
+        try:
+            return self.plan_limit_validator.get_plan_limit_info(user.user_id)
+        
+        except Exception as e:
+            logger.error(f"Error getting plan limit info: {str(e)}")
             raise

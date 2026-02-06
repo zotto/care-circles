@@ -60,11 +60,15 @@ async def get_job_status(
             detail=f"Job {job_id} not found"
         )
     
-    # Extract tasks from result if job is completed
+    # Extract tasks and plan metadata from result if job is completed
     tasks = None
-    if job.status == "completed" and job.result and "tasks" in job.result:
-        # Convert task dicts back to CareTask objects
-        tasks = [CareTask(**task_dict) for task_dict in job.result["tasks"]]
+    summary = None
+    suggested_plan_name = None
+    if job.status == "completed" and job.result:
+        if "tasks" in job.result:
+            tasks = [CareTask(**task_dict) for task_dict in job.result["tasks"]]
+        summary = job.result.get("summary")
+        suggested_plan_name = job.result.get("suggested_plan_name")
     
     return JobStatusResponse(
         status=job.status,
@@ -73,6 +77,8 @@ async def get_job_status(
         current_agent=job.current_agent,
         agent_progress=job.agent_progress,
         tasks=tasks,
+        summary=summary,
+        suggested_plan_name=suggested_plan_name,
         error=job.error,
         started_at=job.started_at,
         completed_at=job.completed_at

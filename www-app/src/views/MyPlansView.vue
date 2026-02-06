@@ -52,7 +52,7 @@
         <div v-for="plan in plans" :key="plan.id" class="plan-card">
           <div class="plan-card__header">
             <div class="plan-card__title-section">
-              <h3 class="plan-card__title" :title="plan.summary || 'Care Plan'">{{ plan.summary || 'Care Plan' }}</h3>
+              <h3 class="plan-card__title" :title="plan.summary || 'My care plan'">{{ plan.summary || 'My care plan' }}</h3>
               <span class="plan-card__date">
                 Created {{ formatDate(plan.created_at) }}
               </span>

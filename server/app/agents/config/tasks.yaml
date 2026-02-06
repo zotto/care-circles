@@ -271,6 +271,7 @@ assemble_review:
     
     The JSON object must have this exact structure:
     {
+      "suggested_plan_name": "A short, descriptive plan name (3-8 words) derived from the narrative, e.g. 'Post-surgery support – 3–4 weeks' or 'Elderly parent weekday support'. This will be shown as the default plan title.",
       "summary": "2-3 paragraph executive summary of the situation and plan",
       "draft_tasks": [
         {
@@ -288,6 +289,7 @@ assemble_review:
     
     Example:
     {
+      "suggested_plan_name": "Post-surgery support – 3–4 weeks",
       "summary": "This care plan addresses the needs of a primary caregiver recovering from surgery. The plan includes 8 tasks covering meals, transportation, and household support over a 3-4 week period. All tasks have been reviewed for safety and appropriateness.",
       "draft_tasks": [
         {
@@ -302,7 +304,7 @@ assemble_review:
       "approval_status": "pending"
     }
     
-    The summary should be 2-3 paragraphs. The draft_tasks array should contain all finalized tasks.
+    suggested_plan_name must be a short, human-readable title (3-8 words) that reflects the narrative (e.g. "Weekend respite for primary caregiver", "Mom's recovery – meals and rides"). The summary should be 2-3 paragraphs. The draft_tasks array should contain all finalized tasks.
     The agent_notes should comprehensively cover the analysis approach, key needs, how tasks address needs, concerns, assumptions, and recommendations.
     
     Remember: Output ONLY the JSON object, nothing else. No markdown formatting, no ```json``` blocks, no explanations.

@@ -30,7 +30,7 @@
       <BaseInput
         v-model="planName"
         label="Plan Name"
-        placeholder="Enter a name for this care plan"
+        placeholder="e.g. Post-surgery support – 3–4 weeks"
         :required="true"
         class="plan-name-input--compact"
       />
@@ -221,7 +221,7 @@ const emit = defineEmits<{
 
 const isRefreshing = ref(false);
 const categories = TASK_CATEGORIES;
-const planName = ref('Care Plan');
+const planName = ref('');
 
 const handleRefresh = async () => {
   isRefreshing.value = true;

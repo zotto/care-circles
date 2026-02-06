@@ -94,6 +94,8 @@ export interface JobStatusResponse {
   current_agent: string | null;
   agent_progress: Record<string, string>;
   tasks: CareTask[] | null;
+  summary?: string | null;
+  suggested_plan_name?: string | null;
   error: string | null;
   started_at: string | null;
   completed_at: string | null;

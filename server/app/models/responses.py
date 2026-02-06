@@ -50,6 +50,8 @@ class JobStatusResponse(BaseModel):
     current_agent: Optional[str] = Field(None, description="Currently executing agent (A1-A5)")
     agent_progress: Dict[str, str] = Field(default_factory=dict, description="Progress of each agent step")
     tasks: Optional[List[CareTask]] = Field(None, description="Generated tasks (only when status is completed)")
+    summary: Optional[str] = Field(None, description="Executive summary of the care plan (when completed)")
+    suggested_plan_name: Optional[str] = Field(None, description="Agent-suggested short plan name derived from the narrative (when completed)")
     error: Optional[str] = Field(None, description="Error message (only when status is failed)")
     started_at: Optional[datetime] = Field(None, description="Job start timestamp")
     completed_at: Optional[datetime] = Field(None, description="Job completion timestamp")

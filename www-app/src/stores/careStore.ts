@@ -113,7 +113,7 @@ export const useCareStore = defineStore('care', () => {
           taskCount: status.tasks?.length || 0
         });
         
-        // Update active job with progress
+        // Update active job with progress (include suggested_plan_name when completed)
         activeJob.value = {
           id: status.job_id,
           care_request_id: status.care_request_id,
@@ -123,6 +123,8 @@ export const useCareStore = defineStore('care', () => {
           error: status.error,
           current_agent: status.current_agent,
           agent_progress: status.agent_progress,
+          suggested_plan_name: status.suggested_plan_name ?? undefined,
+          summary: status.summary ?? undefined,
         };
 
         // Update tasks if completed
@@ -167,7 +169,7 @@ export const useCareStore = defineStore('care', () => {
       try {
         const status = await api.getJobStatus(currentJobId.value);
         
-        // Update active job
+        // Update active job (include suggested_plan_name and summary when completed)
         activeJob.value = {
           id: status.job_id,
           care_request_id: status.care_request_id,
@@ -177,6 +179,8 @@ export const useCareStore = defineStore('care', () => {
           error: status.error,
           current_agent: status.current_agent,
           agent_progress: status.agent_progress,
+          suggested_plan_name: status.suggested_plan_name ?? undefined,
+          summary: status.summary ?? undefined,
         };
 
         // Update tasks if completed
@@ -259,7 +263,7 @@ export const useCareStore = defineStore('care', () => {
 
     const run = async () => {
       try {
-        const finalPlanName = planName?.trim() || 'Care Plan';
+        const finalPlanName = planName?.trim() || 'My care plan';
 
         if (!currentPlanId.value) {
           const planResponse = await api.createCarePlan(

@@ -156,6 +156,7 @@ class ReviewPacket(BaseModel):
     """
     id: str = Field(..., description="Unique identifier for the review packet")
     care_request_id: str = Field(..., description="Associated care request ID")
+    suggested_plan_name: Optional[str] = Field(None, description="Short, narrative-derived name for the plan (e.g. 'Post-surgery support – 3–4 weeks')")
     summary: str = Field(..., description="Executive summary of the care plan")
     draft_tasks: List[CareTask] = Field(..., description="Generated tasks awaiting approval")
     agent_notes: str = Field(..., description="Notes and rationale from the agent pipeline")

@@ -103,7 +103,7 @@
                 <BaseInput
                   v-model="planName"
                   label="Plan Name"
-                  placeholder="Enter a name for this care plan"
+                  placeholder="e.g. Post-surgery support – 3–4 weeks"
                   :required="true"
                   class="plan-name-input--compact"
                 />
@@ -510,7 +510,7 @@ const errorDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null);
 const errorDialogTitle = ref('Error');
 const errorDialogMessage = ref('');
 const taskToDelete = ref<string | null>(null);
-const planName = ref('Care Plan');
+const planName = ref('');
 
 // Plan edit mode (from My Plans → Edit)
 const editMode = computed(() => route.name === 'plan-edit' && !!route.params.planId);
@@ -575,6 +575,27 @@ watch(() => careStore.activeJob?.status, (newStatus) => {
   }
 });
 
+// When job completes, pre-fill plan name with agent suggestion or truncated summary
+function applySuggestedPlanName() {
+  if (editMode.value) return;
+  const job = careStore.activeJob as { status?: string; suggested_plan_name?: string; summary?: string } | null;
+  if (job?.status !== 'completed') return;
+  const suggested = (job.suggested_plan_name ?? job.summary ?? '').trim();
+  if (!suggested) return;
+  if (!planName.value || planName.value.trim() === '') {
+    planName.value = suggested.length > 60 ? `${suggested.slice(0, 57)}...` : suggested;
+  }
+}
+watch(
+  () => ({
+    status: careStore.activeJob?.status,
+    suggested: (careStore.activeJob as any)?.suggested_plan_name,
+    summary: (careStore.activeJob as any)?.summary,
+  }),
+  () => applySuggestedPlanName(),
+  { immediate: true }
+);
+
 // Watch requestSubmitted and scroll when transitioning
 watch(requestSubmitted, (submitted) => {
   // Keep at top when transitioning
@@ -626,7 +647,7 @@ onMounted(async () => {
         created_at: t.created_at ?? new Date().toISOString(),
       }));
       careStore.setPlanForEdit(editPlanId.value, mappedTasks);
-      planName.value = (plan.summary ?? 'Care Plan').trim();
+      planName.value = (plan.summary ?? '').trim() || 'My care plan';
       initialServerTaskIds.value = mappedTasks.map((t) => t.id);
       editPlanLoaded.value = true;
     } catch (err: any) {
@@ -804,7 +825,7 @@ const confirmReset = () => {
   showResetModal.value = false;
   isPlanApproved.value = false;
   planShareUrl.value = null;
-  planName.value = 'Care Plan';
+  planName.value = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 

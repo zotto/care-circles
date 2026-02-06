@@ -915,9 +915,11 @@ Create a comprehensive review packet for the organizer.
                 # Use provided optimized_tasks if not in response
                 final_tasks = optimized_tasks
             
+            suggested = (data.get('suggested_plan_name') or '').strip()
             review_packet = ReviewPacket(
                 id=f"review_{uuid4().hex[:16]}",
                 care_request_id=care_request_id,
+                suggested_plan_name=suggested if suggested else None,
                 summary=data.get('summary', ''),
                 draft_tasks=final_tasks,
                 agent_notes=data.get('agent_notes', ''),

@@ -132,6 +132,7 @@ class JobRunner:
             job.result = {
                 "review_packet_id": review_packet.id,
                 "summary": review_packet.summary,
+                "suggested_plan_name": review_packet.suggested_plan_name,
                 "task_count": len(review_packet.draft_tasks),
                 "tasks": [task.model_dump() for task in review_packet.draft_tasks],
                 "agent_notes": review_packet.agent_notes

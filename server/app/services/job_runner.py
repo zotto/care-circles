@@ -39,8 +39,9 @@ class JobRunner:
     def orchestrator(self):
         """Lazy-load the orchestrator to avoid circular imports"""
         if self._orchestrator is None:
-            from app.services.agent_orchestrator import AgentOrchestrator
-            self._orchestrator = AgentOrchestrator()
+            from app.observability.instrumented_orchestrator import InstrumentedOrchestrator
+            self._orchestrator = InstrumentedOrchestrator()
+            logger.info("Using InstrumentedOrchestrator with Opik observability")
         return self._orchestrator
     
     async def enqueue_job(self, care_request: CareRequest) -> Job:

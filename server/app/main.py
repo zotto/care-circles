@@ -14,7 +14,7 @@ from app.config.constants import APIConstants
 from app.middleware.cors import setup_cors
 from app.middleware.error_handlers import setup_error_handlers
 from app.models.responses import HealthCheckResponse
-from app.api.routes import care_requests, jobs, auth, users, care_plans, tasks, shares
+from app.api.routes import care_requests, jobs, auth, users, care_plans, tasks, shares, observability
 from app.services.job_runner import JobRunner
 
 # Configure logging
@@ -71,6 +71,7 @@ app.include_router(care_plans.router, prefix="/api", tags=["Care Plans"])
 app.include_router(tasks.router, prefix="/api", tags=["Tasks"])
 app.include_router(shares.router, prefix="/api", tags=["Shares"])
 app.include_router(jobs.router, prefix="/api", tags=["Jobs"])
+app.include_router(observability.router, prefix="/api", tags=["Observability"])
 
 
 @app.get("/health", response_model=HealthCheckResponse, tags=["Health"])

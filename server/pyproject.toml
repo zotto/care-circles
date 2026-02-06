@@ -17,6 +17,7 @@ dependencies = [
     "supabase>=2.3.0",
     "python-jose[cryptography]>=3.3.0",
     "httpx>=0.25.0",
+    "opik>=0.2.0",
 ]
 
 [tool.uv]

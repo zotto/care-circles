@@ -228,17 +228,41 @@ All endpoints require Supabase-authenticated requests.
 
 ---
 
-## Observability & Traceability
+## Observability & Evaluation with Opik
 
-Each CareRequest execution captures:
-- Job lifecycle timestamps
-- Agent outputs
-- Approval decisions
+Care Circles implements **comprehensive observability** using Comet Opik:
 
-This enables:
-- Debugging
-- Demo replay
-- Future evaluation
+### Distributed Tracing
+- Full pipeline tracing through all 5 agents (A1-A5)
+- Detailed input/output capture at each stage
+- Execution time and performance metrics
+- Error tracking and debugging context
+
+### Automated Evaluation
+Each care plan is automatically evaluated across 5 dimensions:
+- **Task Quality**: Actionability, clarity, appropriateness, context
+- **Boundary Compliance**: Safety checks and constraint validation
+- **Completeness**: Need coverage and category diversity
+- **Clarity**: Readability and structure
+- **Performance**: Execution efficiency and reliability
+
+### Real-time Metrics
+- Pipeline success rates and execution times
+- Agent-level performance statistics
+- Quality score trends and distributions
+- Comprehensive reporting for continuous improvement
+
+### For Judges
+- **Judge Dashboard**: `/api/observability/dashboard/judge`
+- **Opik Dashboard**: View traces and metrics in Comet Opik
+- **Documentation**: See `OBSERVABILITY.md` for full details
+- **Quick Setup**: See `OPIK_SETUP.md` for 5-minute setup
+
+**Key Differentiators**:
+- Custom evaluators for caregiving domain
+- Automated safety and compliance checks
+- Production-ready monitoring and alerting
+- Data-driven insights for system improvement
 
 ---
 

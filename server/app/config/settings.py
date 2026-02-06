@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = Field(..., description="Supabase service role key (for server-side operations)")
     SUPABASE_JWT_SECRET: str = Field(..., description="Supabase JWT secret for token verification")
     
+    # Opik Configuration (Observability & Evaluation)
+    OPIK_API_KEY: str = Field(default="", description="Opik API key for observability")
+    OPIK_WORKSPACE: str = Field(default="", description="Opik workspace name (your Comet username)")
+    OPIK_PROJECT_NAME: str = Field(default="care-circles", description="Opik project name")
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

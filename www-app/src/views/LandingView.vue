@@ -20,7 +20,7 @@
             <span class="gradient-text">Into Action</span>
           </h1>
           <p class="hero__subtitle">
-            Coordinate care by turning unstructured needs into clear, actionable tasks with AI assistance.
+            Coordinate care by turning unstructured needs into clear, actionable tasks with AI assistance. Human-approved plans that bring care circles together.
           </p>
           <div class="hero__actions">
             <BaseButton 
@@ -49,30 +49,22 @@
             </BaseButton>
           </div>
         </div>
+
+        <!-- Demo Video -->
         <div 
           class="hero__visual"
           :class="{ 'is-visible': heroVisible }"
         >
-          <div ref="card1Ref" class="hero__card hero__card--1">
-            <BaseIcon :path="mdiFileDocumentMultiple" :size="32" />
-            <div class="hero__card-content">
-              <div class="hero__card-title">Care Plans</div>
-              <div class="hero__card-subtitle">Organized & Clear</div>
-            </div>
-          </div>
-          <div ref="card2Ref" class="hero__card hero__card--2">
-            <BaseIcon :path="mdiAccountMultiple" :size="32" />
-            <div class="hero__card-content">
-              <div class="hero__card-title">Care Circles</div>
-              <div class="hero__card-subtitle">Coordinated Support</div>
-            </div>
-          </div>
-          <div ref="card3Ref" class="hero__card hero__card--3">
-            <BaseIcon :path="mdiCheckCircle" :size="32" />
-            <div class="hero__card-content">
-              <div class="hero__card-title">Tasks</div>
-              <div class="hero__card-subtitle">Actionable Steps</div>
-            </div>
+          <div class="hero__video-wrapper">
+            <video
+              class="hero__video"
+              :src="demoVideoUrl"
+              autoplay
+              loop
+              muted
+              playsinline
+              aria-label="Care Circles product demo"
+            />
           </div>
         </div>
       </div>
@@ -180,15 +172,14 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import {
   mdiAccountMultiple,
-  mdiCheckCircle,
   mdiChevronDown,
   mdiEyeCheck,
-  mdiFileDocumentMultiple,
   mdiLogin,
   mdiRobot,
   mdiShieldCheck,
 } from '@mdi/js';
 import logoUrl from '@/assets/logo.png';
+import demoVideoUrl from '@/assets/demo.mp4';
 
 const { open: openLoginModal } = useLoginModal();
 
@@ -319,34 +310,6 @@ const steps = [
   },
 ];
 
-// Card z-index cycling
-const card1Ref = ref<HTMLElement | null>(null);
-const card2Ref = ref<HTMLElement | null>(null);
-const card3Ref = ref<HTMLElement | null>(null);
-let zIndexInterval: ReturnType<typeof setInterval> | null = null;
-let currentFrontCard = 0;
-
-const cycleCardZIndex = () => {
-  const cards = [card1Ref.value, card2Ref.value, card3Ref.value].filter(Boolean) as HTMLElement[];
-  if (cards.length !== 3) return;
-
-  // Reset all cards to base state
-  cards.forEach((card) => {
-    card.style.zIndex = '1';
-    card.classList.remove('hero__card--front');
-  });
-
-  // Set the front card with a subtle scale effect
-  const frontCard = cards[currentFrontCard];
-  if (frontCard) {
-    frontCard.style.zIndex = '10';
-    frontCard.classList.add('hero__card--front');
-  }
-
-  // Move to next card
-  currentFrontCard = (currentFrontCard + 1) % 3;
-};
-
 onMounted(() => {
   // Initialize feature visibility array
   featureVisible.value = new Array(features.length).fill(false);
@@ -354,18 +317,10 @@ onMounted(() => {
 
   // Add window resize listener
   window.addEventListener('resize', updateWindowWidth);
-
-  // Start z-index cycling after a short delay to ensure cards are rendered
-  setTimeout(() => {
-    zIndexInterval = setInterval(cycleCardZIndex, 3000); // Cycle every 3 seconds
-  }, 500);
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateWindowWidth);
-  if (zIndexInterval) {
-    clearInterval(zIndexInterval);
-  }
 });
 </script>
 
@@ -378,10 +333,10 @@ onUnmounted(() => {
 /* Hero Section */
 .hero {
   position: relative;
-  min-height: 85vh;
+  min-height: 90vh;
   display: flex;
   align-items: center;
-  padding: var(--spacing-5xl) 0 var(--spacing-4xl);
+  padding: var(--spacing-4xl) 0;
   overflow: hidden;
 }
 
@@ -406,8 +361,8 @@ onUnmounted(() => {
   position: absolute;
   inset: 0;
   background-image: 
-    radial-gradient(circle at 20% 50%, rgba(79, 70, 229, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+    radial-gradient(circle at 20% 50%, rgba(79, 70, 229, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(236, 72, 153, 0.08) 0%, transparent 50%);
   background-size: 100% 100%;
 }
 
@@ -416,7 +371,7 @@ onUnmounted(() => {
   z-index: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-3xl);
+  gap: var(--spacing-5xl);
   align-items: center;
 }
 
@@ -436,13 +391,13 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-md);
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(79, 70, 229, 0.2);
   border-radius: var(--radius-full);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-primary);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
   backdrop-filter: blur(10px);
 }
 
@@ -454,7 +409,7 @@ onUnmounted(() => {
 }
 
 .hero__title {
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: var(--font-weight-bold);
   line-height: 1.1;
   margin-bottom: var(--spacing-xl);
@@ -463,17 +418,11 @@ onUnmounted(() => {
 }
 
 .hero__subtitle {
-  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  font-size: clamp(1.125rem, 2vw, 1.375rem);
   line-height: var(--line-height-relaxed);
   color: var(--color-text-secondary);
   margin-bottom: var(--spacing-3xl);
   max-width: 600px;
-}
-
-@media (min-width: 1024px) {
-  .hero__subtitle {
-    max-width: 720px;
-  }
 }
 
 .hero__actions {
@@ -482,15 +431,12 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
+/* Demo Video */
 .hero__visual {
   position: relative;
-  height: 500px;
   opacity: 0;
   transform: translateY(30px);
   transition: opacity 0.8s ease-out 0.2s, transform 0.8s ease-out 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .hero__visual.is-visible {
@@ -498,128 +444,22 @@ onUnmounted(() => {
   transform: translateY(0);
 }
 
-.hero__card {
-  position: absolute;
-  background: white;
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-xl);
-  box-shadow: var(--shadow-xl);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--spacing-md);
-  border: 1px solid var(--color-border);
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
-  backdrop-filter: blur(10px);
-  cursor: default;
-  z-index: 1;
-}
-
-.hero__card :deep(svg) {
-  color: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.hero__card--front {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-2xl);
-}
-
-.hero__card:hover {
-  box-shadow: var(--shadow-2xl);
-  z-index: 20 !important;
-}
-
-.hero__card--1 {
-  top: 40px;
-  left: 40px;
-  width: 280px;
-  animation: floatCard1 6s ease-in-out infinite;
-}
-
-.hero__card--1:hover {
-  transform: translateY(-8px) scale(1.02);
-}
-
-.hero__card--1.hero__card--front {
-  transform: scale(1.05);
-}
-
-.hero__card--2 {
-  top: 160px;
-  right: 40px;
-  width: 300px;
-  animation: floatCard2 6s ease-in-out infinite 2s;
-}
-
-.hero__card--2:hover {
-  transform: translateY(-8px) scale(1.02);
-}
-
-.hero__card--2.hero__card--front {
-  transform: scale(1.05);
-}
-
-.hero__card--3 {
-  bottom: 60px;
-  left: 50%;
-  width: 260px;
-  animation: floatCard3 6s ease-in-out infinite 4s;
-  transform: translateX(-50%);
-}
-
-.hero__card--3:hover {
-  transform: translateX(-50%) translateY(-8px) scale(1.02);
-}
-
-.hero__card--3.hero__card--front {
-  transform: translateX(-50%) scale(1.05);
-}
-
-@keyframes floatCard1 {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-12px);
-  }
-}
-
-@keyframes floatCard2 {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-12px);
-  }
-}
-
-@keyframes floatCard3 {
-  0%, 100% {
-    transform: translateX(-50%) translateY(0px);
-  }
-  50% {
-    transform: translateX(-50%) translateY(-12px);
-  }
-}
-
-.hero__card-content {
-  flex: 1;
+.hero__video-wrapper {
+  position: relative;
   width: 100%;
+  min-height: 320px;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-2xl);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
 }
 
-.hero__card-title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-xs);
-}
-
-.hero__card-subtitle {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: var(--line-height-relaxed);
+.hero__video {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: middle;
 }
 
 /* Features Section */
@@ -862,29 +702,7 @@ onUnmounted(() => {
 @media (max-width: 1024px) {
   .hero__container {
     grid-template-columns: 1fr;
-    gap: var(--spacing-2xl);
-  }
-
-  .hero__visual {
-    height: 400px;
-  }
-
-  .hero__card--1 {
-    top: 10px;
-    left: 10px;
-    width: 240px;
-  }
-
-  .hero__card--2 {
-    top: 120px;
-    right: 10px;
-    width: 260px;
-  }
-
-  .hero__card--3 {
-    bottom: 20px;
-    left: 50%;
-    width: 240px;
+    gap: var(--spacing-4xl);
   }
 }
 
@@ -920,6 +738,10 @@ onUnmounted(() => {
     width: 100%;
   }
 
+  .hero__video-wrapper {
+    border-radius: var(--radius-xl);
+  }
+
   .features {
     padding: var(--spacing-4xl) 0;
   }
@@ -952,40 +774,6 @@ onUnmounted(() => {
   .how-it-works__steps {
     grid-template-columns: 1fr;
     gap: var(--spacing-lg);
-  }
-  
-  .hero__visual {
-    height: auto;
-    min-height: auto;
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-md);
-    padding: 0;
-  }
-
-  .hero__card {
-    padding: var(--spacing-lg);
-  }
-
-  .hero__card--1,
-  .hero__card--2,
-  .hero__card--3 {
-    position: static;
-    transform: none !important;
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    animation: none;
-  }
-
-  .hero__card--1:hover,
-  .hero__card--2:hover,
-  .hero__card--3:hover {
-    transform: translateY(-2px) !important;
-  }
-
-  .hero__card--front {
-    transform: none !important;
   }
 
   .feature-card {
@@ -1021,21 +809,8 @@ onUnmounted(() => {
     font-size: var(--font-size-sm);
   }
 
-  .hero__card {
-    padding: var(--spacing-md);
-  }
-
-  .hero__card :deep(svg) {
-    width: 24px;
-    height: 24px;
-  }
-
-  .hero__card-title {
-    font-size: var(--font-size-lg);
-  }
-
-  .hero__card-subtitle {
-    font-size: var(--font-size-xs);
+  .hero__video-wrapper {
+    border-radius: var(--radius-lg);
   }
 
   .features,

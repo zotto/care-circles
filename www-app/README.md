@@ -42,6 +42,11 @@ The app will be available at `http://localhost:5173`
 yarn build
 ```
 
+The build output in `dist/` is suitable for deployment to S3 + CloudFront (or any static host). Assets in `public/` are copied to the root unchanged, so after deploy you get stable URLs:
+
+- **Logo (e.g. for Supabase magic link email):** `https://<your-cloudfront-domain>/logo.png`  
+  Use in your email template as: `<img src="https://<your-cloudfront-domain>/logo.png" alt="Care Circles" />`
+
 ### Preview Production Build
 
 ```bash

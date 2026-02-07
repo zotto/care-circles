@@ -12,7 +12,10 @@ import * as storage from '@/services/storage';
 
 // Rate limit state management
 const RATE_LIMIT_STORAGE_KEY = 'magic_link_rate_limit';
-const DEFAULT_RATE_LIMIT_MS = 3600000; // 1 hour (Supabase's typical email rate limit)
+// Generic API rate limit fallback when no Retry-After (e.g. 1200/hour = 3s)
+const DEFAULT_RATE_LIMIT_MS = 3000;
+// Supabase auth OTP: "email rate limit exceeded" – no Retry-After, typically 1h
+const SUPABASE_EMAIL_RATE_LIMIT_MS = 3600000;
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -22,8 +25,11 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref<string | null>(null);
   const isInitialized = ref(false);
   const rateLimitUntil = ref<number | null>(null);
+  // Ticks every second while rate limited so computed re-evaluates (live countdown)
+  const rateLimitTick = ref(0);
   let authSubscription: ReturnType<typeof authService.onAuthStateChange> | null = null;
   let initializationPromise: Promise<void> | null = null;
+  let rateLimitInterval: ReturnType<typeof setInterval> | null = null;
 
   // Computed
   const isAuthenticated = computed(() => !!session.value && !!user.value);
@@ -32,11 +38,30 @@ export const useAuthStore = defineStore('auth', () => {
     return rateLimitUntil.value !== null && rateLimitUntil.value > Date.now();
   });
   const rateLimitRemainingSeconds = computed(() => {
+    rateLimitTick.value; // depend on tick so this recomputes every second
     if (!rateLimitUntil.value || rateLimitUntil.value <= Date.now()) {
       return 0;
     }
     return Math.ceil((rateLimitUntil.value - Date.now()) / 1000);
   });
+
+  function startRateLimitTick() {
+    if (rateLimitInterval) return;
+    rateLimitInterval = setInterval(() => {
+      if (!rateLimitUntil.value || rateLimitUntil.value <= Date.now()) {
+        clearRateLimitState();
+        return;
+      }
+      rateLimitTick.value = Date.now();
+    }, 1000);
+  }
+
+  function stopRateLimitTick() {
+    if (rateLimitInterval) {
+      clearInterval(rateLimitInterval);
+      rateLimitInterval = null;
+    }
+  }
 
   // Rate limit management
   function loadRateLimitState() {
@@ -46,6 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
         const until = parseInt(stored, 10);
         if (until > Date.now()) {
           rateLimitUntil.value = until;
+          startRateLimitTick();
         } else {
           clearRateLimitState();
         }
@@ -57,6 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   function saveRateLimitState(until: number) {
     rateLimitUntil.value = until;
+    startRateLimitTick();
     try {
       localStorage.setItem(RATE_LIMIT_STORAGE_KEY, until.toString());
     } catch (err) {
@@ -65,6 +92,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clearRateLimitState() {
+    stopRateLimitTick();
     rateLimitUntil.value = null;
     try {
       localStorage.removeItem(RATE_LIMIT_STORAGE_KEY);
@@ -197,8 +225,11 @@ export const useAuthStore = defineStore('auth', () => {
         err.message?.toLowerCase().includes('email rate limit');
 
       if (isRateLimit) {
-        // Try to extract retry-after from error, otherwise use default
-        const retryAfterMs = extractRetryAfterMs(err) || DEFAULT_RATE_LIMIT_MS;
+        // Supabase "email rate limit exceeded" has no Retry-After → use 1h; else try header or generic default
+        const isEmailRateLimit = err.message?.toLowerCase().includes('email rate limit');
+        const retryAfterMs =
+          extractRetryAfterMs(err) ||
+          (isEmailRateLimit ? SUPABASE_EMAIL_RATE_LIMIT_MS : DEFAULT_RATE_LIMIT_MS);
         const cooldownUntil = Date.now() + retryAfterMs;
         saveRateLimitState(cooldownUntil);
         
@@ -243,6 +274,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function cleanup() {
+    stopRateLimitTick();
     // Unsubscribe from auth state changes
     if (authSubscription) {
       authSubscription.unsubscribe();

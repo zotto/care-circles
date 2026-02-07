@@ -36,7 +36,7 @@
 
             <p v-if="error" class="error-message">{{ error }}</p>
             <p v-if="authStore.isRateLimited && !error" class="error-message">
-              Rate limit active. Please wait {{ authStore.rateLimitRemainingSeconds }} second{{ authStore.rateLimitRemainingSeconds !== 1 ? 's' : '' }}.
+              Rate limit active. Please wait.
             </p>
           </form>
 

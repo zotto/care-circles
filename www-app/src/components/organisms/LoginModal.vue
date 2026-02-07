@@ -8,28 +8,27 @@
             <BaseIcon :path="mdiClose" :size="20" />
           </button>
 
-          <div class="login-modal__header">
+          <header class="login-modal__header">
             <img :src="logoUrl" alt="Care Circles" class="login-modal__logo" />
-            <h2 class="login-modal__title">Welcome to Care Circles</h2>
-            <p class="login-modal__subtitle">Sign in to coordinate care</p>
-          </div>
+            <h1 class="login-modal__title">Care Circles</h1>
+            <p class="login-modal__subtitle">
+              {{ emailSent ? 'Check your email' : 'Sign in to coordinate care' }}
+            </p>
+          </header>
 
-          <div v-if="!emailSent" class="login-modal__form">
-            <form @submit.prevent="handleSubmit">
-              <div class="form-group">
-                <label for="email" class="form-label">Email address</label>
-                <input
-                  id="email"
-                  v-model="email"
-                  type="email"
-                  class="form-input"
-                  placeholder="you@example.com"
-                  required
-                  :disabled="authStore.isLoading"
-                  autofocus
-                />
-              </div>
-
+          <div v-if="!emailSent" class="login-modal__body">
+            <form @submit.prevent="handleSubmit" class="login-form">
+              <label for="email" class="sr-only">Email</label>
+              <input
+                id="email"
+                v-model="email"
+                type="email"
+                class="login-form__input"
+                placeholder="you@example.com"
+                required
+                :disabled="authStore.isLoading"
+                autofocus
+              />
               <BaseButton
                 type="submit"
                 variant="primary"
@@ -38,50 +37,25 @@
                 :disabled="authStore.isLoading || !email || authStore.isRateLimited"
                 :loading="authStore.isLoading"
                 full-width
-                class="form-submit-button"
+                class="login-form__submit"
               >
                 <template #icon>
                   <BaseIcon :path="mdiSend" :size="18" />
                 </template>
-                <span v-if="cooldownSeconds > 0">
-                  Wait {{ cooldownSeconds }}s
-                </span>
-                <span v-else>
-                  Send link
-                </span>
+                <span v-if="cooldownSeconds > 0">Wait {{ cooldownSeconds }}s</span>
+                <span v-else>Send link</span>
               </BaseButton>
-
-              <p v-if="error" class="error-message">{{ error }}</p>
-              <p v-if="cooldownSeconds > 0 && !error" class="error-message">
-                Rate limit active. Please wait {{ cooldownSeconds }} second{{ cooldownSeconds !== 1 ? 's' : '' }}.
-              </p>
+              <p v-if="error" class="login-form__error">{{ error }}</p>
             </form>
-
-            <p class="info-text">
-              We'll send you a magic link for passwordless sign-in
-            </p>
           </div>
 
-          <div v-else class="login-modal__success">
-            <div class="success-icon">✓</div>
-            <h3 class="success-title">Check your email!</h3>
-            <p class="success-text">
-              We've sent a magic link to <strong>{{ email }}</strong>
+          <div v-else class="login-modal__body login-modal__success">
+            <p class="success-message">
+              We sent a sign-in link to <strong>{{ email }}</strong>. Click it to continue—you can close this window.
             </p>
-            <p class="success-subtext">
-              Click the link in the email to sign in. You can close this window.
-            </p>
-            <BaseButton
-              variant="outline"
-              size="md"
-              icon
-              @click="emailSent = false"
-            >
-              <template #icon>
-                <BaseIcon :path="mdiPencil" :size="18" />
-              </template>
-              Different email
-            </BaseButton>
+            <button type="button" class="login-modal__link" @click="emailSent = false">
+              Use a different email
+            </button>
           </div>
         </div>
       </div>
@@ -95,7 +69,7 @@ import { useAuthStore } from '@/stores/authStore';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import logoUrl from '@/assets/logo.png';
-import { mdiClose, mdiPencil, mdiSend } from '@mdi/js';
+import { mdiClose, mdiSend } from '@mdi/js';
 
 interface Props {
   modelValue: boolean;
@@ -215,183 +189,171 @@ async function handleSubmit() {
 .login-modal__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
 }
 
 .login-modal__container {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 400px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-width: 380px;
 }
 
 .login-modal__content {
-  background: white;
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-xl);
-  box-shadow: var(--shadow-2xl);
+  background: var(--color-bg-primary, #fff);
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12);
   position: relative;
 }
 
 .login-modal__close {
   position: absolute;
-  top: var(--spacing-md);
-  right: var(--spacing-md);
-  width: 28px;
-  height: 28px;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-secondary);
+  background: transparent;
   border: none;
-  border-radius: var(--radius-full);
+  border-radius: 8px;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: color 0.15s, background 0.15s;
   z-index: 1;
 }
 
 .login-modal__close:hover {
-  background: var(--color-bg-tertiary);
+  background: var(--color-bg-secondary);
   color: var(--color-text-primary);
 }
 
 .login-modal__header {
   text-align: center;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 28px;
 }
 
 .login-modal__logo {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto var(--spacing-sm);
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
   display: block;
   object-fit: contain;
 }
 
 .login-modal__title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
+  font-size: 1.375rem;
+  font-weight: 600;
   color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-xs);
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
 }
 
 .login-modal__subtitle {
-  font-size: var(--font-size-sm);
+  font-size: 0.9375rem;
   color: var(--color-text-secondary);
   margin: 0;
+  font-weight: 500;
 }
 
-.login-modal__form {
+.login-modal__body {
+  min-height: 120px;
+}
+
+.login-form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 12px;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.form-label {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.form-input {
-  padding: var(--spacing-sm) var(--spacing-md);
+.login-form__input {
+  padding: 12px 14px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
-  transition: all var(--transition-base);
-  font-family: var(--font-family-base);
-  height: 44px;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+  height: 48px;
 }
 
-.form-input:focus {
+.login-form__input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.login-form__input:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-subtle);
 }
 
-.form-input:disabled {
+.login-form__input:disabled {
   background: var(--color-bg-secondary);
   cursor: not-allowed;
 }
 
-.form-submit-button {
-  margin-top: var(--spacing-md);
+.login-form__submit {
+  margin-top: 4px;
 }
 
-.error-message {
+.login-form__error {
   color: var(--color-danger);
-  font-size: var(--font-size-sm);
+  font-size: 0.875rem;
   margin: 0;
   text-align: center;
-}
-
-.info-text {
-  text-align: center;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-  margin: 0;
-  line-height: 1.4;
 }
 
 .login-modal__success {
   text-align: center;
-  padding: var(--spacing-md) 0;
+  padding: 8px 0 0;
 }
 
-.success-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto var(--spacing-lg);
-  background: var(--color-primary-gradient);
-  color: white;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  font-weight: bold;
-}
-
-.success-title {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text-primary);
-  margin: 0 0 var(--spacing-md);
-}
-
-.success-text {
-  font-size: var(--font-size-base);
+.login-modal__success .success-message {
+  font-size: 0.9375rem;
   color: var(--color-text-secondary);
-  margin: 0 0 var(--spacing-sm);
+  line-height: 1.5;
+  margin: 0 0 20px;
 }
 
-.success-subtext {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-tertiary);
-  margin: 0 0 var(--spacing-xl);
+.login-modal__link {
+  background: none;
+  border: none;
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-family: inherit;
 }
 
-/* Modal Transitions */
+.login-modal__link:hover {
+  color: var(--color-primary-hover, var(--color-primary));
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Modal transitions */
 .modal-enter-active,
 .modal-leave-active {
-  transition: opacity var(--transition-base);
+  transition: opacity 0.2s ease;
 }
 
 .modal-enter-active .login-modal__container,
 .modal-leave-active .login-modal__container {
-  transition: transform var(--transition-base), opacity var(--transition-base);
+  transition: transform 0.25s ease, opacity 0.25s ease;
 }
 
 .modal-enter-from,
@@ -402,7 +364,7 @@ async function handleSubmit() {
 .modal-enter-from .login-modal__container,
 .modal-leave-to .login-modal__container {
   opacity: 0;
-  transform: scale(0.95) translateY(20px);
+  transform: scale(0.97) translateY(8px);
 }
 
 .modal-enter-to .login-modal__container,

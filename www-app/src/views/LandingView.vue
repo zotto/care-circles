@@ -185,6 +185,7 @@ import {
   mdiRobot,
   mdiShieldCheck,
 } from '@mdi/js';
+import logoUrl from '@/assets/logo.png';
 
 const { open: openLoginModal } = useLoginModal();
 

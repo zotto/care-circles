@@ -123,9 +123,10 @@ export async function handleAuthCallback(): Promise<Session | null> {
       }
       
       // Clear the hash from URL after processing for security
+      // Preserve history.state so Vue Router's navigation state is not lost
       if (window.history.replaceState) {
         const cleanUrl = window.location.pathname + (window.location.search || '');
-        window.history.replaceState(null, '', cleanUrl);
+        window.history.replaceState(window.history.state, '', cleanUrl);
       }
       
       return data.session;

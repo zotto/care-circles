@@ -9,9 +9,7 @@
           </button>
 
           <div class="login-modal__header">
-            <div class="login-modal__logo">
-              <BaseIcon :path="mdiHeartCircle" :size="24" />
-            </div>
+            <img :src="logoUrl" alt="Care Circles" class="login-modal__logo" />
             <h2 class="login-modal__title">Welcome to Care Circles</h2>
             <p class="login-modal__subtitle">Sign in to coordinate care</p>
           </div>
@@ -96,7 +94,8 @@ import { ref, watch, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/authStore';
 import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
-import { mdiClose, mdiHeartCircle, mdiPencil, mdiSend } from '@mdi/js';
+import logoUrl from '@/assets/logo.png';
+import { mdiClose, mdiPencil, mdiSend } from '@mdi/js';
 
 interface Props {
   modelValue: boolean;
@@ -269,12 +268,8 @@ async function handleSubmit() {
   width: 48px;
   height: 48px;
   margin: 0 auto var(--spacing-sm);
-  background: var(--color-primary-subtle);
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-primary);
+  display: block;
+  object-fit: contain;
 }
 
 .login-modal__title {

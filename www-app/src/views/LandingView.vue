@@ -12,7 +12,7 @@
           :class="{ 'is-visible': heroVisible }"
         >
           <div class="hero__badge">
-            <BaseIcon :path="mdiHeartCircle" :size="16" />
+            <img :src="logoUrl" alt="" class="hero__badge-logo" aria-hidden="true" />
             <span>AI-Powered Care Coordination</span>
           </div>
           <h1 class="hero__title">
@@ -181,7 +181,6 @@ import {
   mdiChevronDown,
   mdiEyeCheck,
   mdiFileDocumentMultiple,
-  mdiHeartCircle,
   mdiLogin,
   mdiRobot,
   mdiShieldCheck,
@@ -429,6 +428,13 @@ onUnmounted(() => {
   color: var(--color-primary);
   margin-bottom: var(--spacing-lg);
   backdrop-filter: blur(10px);
+}
+
+.hero__badge-logo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .hero__title {

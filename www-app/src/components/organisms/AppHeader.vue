@@ -3,9 +3,7 @@
     <div class="app-header__container">
       <!-- Left: Brand -->
       <router-link :to="isAuthenticated ? '/my-plans' : '/'" class="app-header__brand">
-        <div class="app-header__logo">
-          <BaseIcon :path="mdiHeartCircle" :size="20" />
-        </div>
+        <img :src="logoUrl" alt="Care Circles" class="app-header__logo" />
         <span class="app-header__name">Care Circles</span>
       </router-link>
       
@@ -96,8 +94,8 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useLoginModal } from '@/composables/useLoginModal';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
+import logoUrl from '@/assets/logo.png';
 import { 
-  mdiHeartCircle, 
   mdiFileDocumentMultiple,
   mdiClipboardCheck,
   mdiAccount,
@@ -225,19 +223,15 @@ onUnmounted(() => {
 }
 
 .app-header__logo {
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--color-primary-subtle) 0%, #fdf2f8 100%);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-base);
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
+  transition: transform var(--transition-base);
 }
 
 .app-header__brand:hover .app-header__logo {
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, #fce7f3 100%);
   transform: scale(1.05);
 }
 

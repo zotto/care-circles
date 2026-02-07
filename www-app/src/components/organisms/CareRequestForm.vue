@@ -72,7 +72,7 @@
             full-width
           >
             <template #icon>
-              <BaseIcon :path="mdiHandHeart" :size="18" />
+              <img :src="logoUrl" alt="" class="care-request-form__btn-logo" aria-hidden="true" />
             </template>
             Get Help
           </BaseButton>
@@ -94,7 +94,8 @@ import BaseButton from '@/components/atoms/BaseButton.vue';
 import BaseIcon from '@/components/atoms/BaseIcon.vue';
 import { VALIDATION } from '@/constants';
 import type { CareRequest } from '@/types';
-import { mdiChevronDown, mdiHandHeart } from '@mdi/js';
+import logoUrl from '@/assets/logo.png';
+import { mdiChevronDown } from '@mdi/js';
 
 interface FormData {
   narrative: string;
@@ -358,6 +359,13 @@ const handleSubmit = async () => {
   align-items: center;
   padding-top: var(--spacing-sm);
   margin-top: var(--spacing-xs);
+}
+
+.care-request-form__btn-logo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
 }
 
 .care-request-form__privacy {

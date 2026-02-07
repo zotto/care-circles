@@ -7,7 +7,6 @@ Provides database connectivity and client initialization for the Care Circles AP
 import logging
 from typing import Optional
 from supabase import create_client, Client
-from supabase.lib.client_options import ClientOptions
 
 from app.config.settings import settings
 
@@ -42,10 +41,6 @@ class SupabaseClient:
             cls._service_client = create_client(
                 supabase_url=settings.SUPABASE_URL,
                 supabase_key=settings.SUPABASE_SERVICE_ROLE_KEY,
-                options=ClientOptions(
-                    auto_refresh_token=False,
-                    persist_session=False
-                )
             )
             logger.info("Supabase service role client initialized")
         
@@ -68,10 +63,6 @@ class SupabaseClient:
             cls._anon_client = create_client(
                 supabase_url=settings.SUPABASE_URL,
                 supabase_key=settings.SUPABASE_ANON_KEY,
-                options=ClientOptions(
-                    auto_refresh_token=False,
-                    persist_session=False
-                )
             )
             logger.info("Supabase anon client initialized")
         
@@ -95,10 +86,6 @@ class SupabaseClient:
         client = create_client(
             supabase_url=settings.SUPABASE_URL,
             supabase_key=settings.SUPABASE_ANON_KEY,
-            options=ClientOptions(
-                auto_refresh_token=False,
-                persist_session=False
-            )
         )
         # Set the auth token for this client
         client.auth.set_session(access_token, "")

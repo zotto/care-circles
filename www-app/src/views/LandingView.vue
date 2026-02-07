@@ -27,6 +27,7 @@
               variant="primary" 
               size="lg"
               icon
+              :fullWidth="isMobile"
               @click="openLoginModal"
             >
               <template #icon>
@@ -38,6 +39,7 @@
               variant="outline" 
               size="lg"
               icon
+              :fullWidth="isMobile"
               @click="scrollToFeatures"
             >
               <template #icon>
@@ -156,6 +158,7 @@
             variant="primary" 
             size="lg"
             icon
+            :fullWidth="isMobile"
             @click="openLoginModal"
           >
             <template #icon>
@@ -170,7 +173,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue';
+import { ref, onMounted, onUnmounted, computed, type ComponentPublicInstance } from 'vue';
 import { useScrollReveal, useStaggeredReveal } from '@/composables/useAnimations';
 import { useLoginModal } from '@/composables/useLoginModal';
 import BaseButton from '@/components/atoms/BaseButton.vue';
@@ -188,6 +191,14 @@ import {
 import logoUrl from '@/assets/logo.png';
 
 const { open: openLoginModal } = useLoginModal();
+
+// Mobile detection
+const windowWidth = ref(window.innerWidth);
+const isMobile = computed(() => windowWidth.value <= 768);
+
+const updateWindowWidth = () => {
+  windowWidth.value = window.innerWidth;
+};
 
 const scrollToFeatures = () => {
   document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
@@ -341,6 +352,9 @@ onMounted(() => {
   featureVisible.value = new Array(features.length).fill(false);
   stepVisible.value = new Array(steps.length).fill(false);
 
+  // Add window resize listener
+  window.addEventListener('resize', updateWindowWidth);
+
   // Start z-index cycling after a short delay to ensure cards are rendered
   setTimeout(() => {
     zIndexInterval = setInterval(cycleCardZIndex, 3000); // Cycle every 3 seconds
@@ -348,6 +362,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  window.removeEventListener('resize', updateWindowWidth);
   if (zIndexInterval) {
     clearInterval(zIndexInterval);
   }
@@ -847,7 +862,7 @@ onUnmounted(() => {
 @media (max-width: 1024px) {
   .hero__container {
     grid-template-columns: 1fr;
-    gap: var(--spacing-3xl);
+    gap: var(--spacing-2xl);
   }
 
   .hero__visual {
@@ -876,15 +891,151 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .hero {
     min-height: auto;
-    padding: var(--spacing-3xl) 0;
+    padding: var(--spacing-2xl) 0 var(--spacing-3xl);
+  }
+
+  .hero__badge {
+    font-size: var(--font-size-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .hero__badge-logo {
+    width: 16px;
+    height: 16px;
+  }
+
+  .hero__title {
+    font-size: clamp(2rem, 8vw, 2.5rem);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .hero__subtitle {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--spacing-2xl);
   }
 
   .hero__actions {
     flex-direction: column;
+    gap: var(--spacing-sm);
+    width: 100%;
   }
 
-  .hero__actions .button {
+  .features {
+    padding: var(--spacing-4xl) 0;
+  }
+
+  .how-it-works,
+  .cta {
+    padding: var(--spacing-4xl) 0;
+  }
+
+  .features__header,
+  .how-it-works__header {
+    margin-bottom: var(--spacing-3xl);
+  }
+
+  .features__title,
+  .how-it-works__title {
+    font-size: clamp(1.75rem, 6vw, 2rem);
+  }
+
+  .features__subtitle,
+  .how-it-works__subtitle {
+    font-size: var(--font-size-base);
+  }
+
+  .features__grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xl);
+  }
+
+  .how-it-works__steps {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+  
+  .hero__visual {
+    height: auto;
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: 0;
+  }
+
+  .hero__card {
+    padding: var(--spacing-lg);
+  }
+
+  .hero__card--1,
+  .hero__card--2,
+  .hero__card--3 {
+    position: static;
+    transform: none !important;
     width: 100%;
+    max-width: 100%;
+    margin: 0;
+    animation: none;
+  }
+
+  .hero__card--1:hover,
+  .hero__card--2:hover,
+  .hero__card--3:hover {
+    transform: translateY(-2px) !important;
+  }
+
+  .hero__card--front {
+    transform: none !important;
+  }
+
+  .feature-card {
+    padding: var(--spacing-2xl);
+  }
+
+  .step-card {
+    padding: var(--spacing-lg);
+  }
+
+  .cta__title {
+    font-size: clamp(1.75rem, 6vw, 2rem);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .cta__subtitle {
+    font-size: var(--font-size-base);
+    margin-bottom: var(--spacing-2xl);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: var(--spacing-xl) 0 var(--spacing-2xl);
+  }
+
+  .hero__title {
+    font-size: clamp(1.75rem, 10vw, 2.25rem);
+    line-height: 1.2;
+  }
+
+  .hero__subtitle {
+    font-size: var(--font-size-sm);
+  }
+
+  .hero__card {
+    padding: var(--spacing-md);
+  }
+
+  .hero__card :deep(svg) {
+    width: 24px;
+    height: 24px;
+  }
+
+  .hero__card-title {
+    font-size: var(--font-size-lg);
+  }
+
+  .hero__card-subtitle {
+    font-size: var(--font-size-xs);
   }
 
   .features,
@@ -893,35 +1044,30 @@ onUnmounted(() => {
     padding: var(--spacing-3xl) 0;
   }
 
-  .features__grid,
-  .how-it-works__steps {
-    grid-template-columns: 1fr;
-  }
-  
-  .hero__visual {
-    height: 500px;
-    min-height: 500px;
+  .feature-card {
+    padding: var(--spacing-xl);
   }
 
-  .hero__card--1,
-  .hero__card--2,
-  .hero__card--3 {
-    position: relative;
-    top: auto;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    transform: none !important;
-    width: 100%;
-    max-width: 320px;
-    margin: 0 auto var(--spacing-lg);
-    animation: none;
+  .feature-card__icon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: var(--spacing-md);
   }
 
-  .hero__card--1:hover,
-  .hero__card--2:hover,
-  .hero__card--3:hover {
-    transform: translateY(-4px) scale(1.01) !important;
+  .feature-card__icon :deep(svg) {
+    width: 28px;
+    height: 28px;
+  }
+
+  .step-card {
+    padding: var(--spacing-md);
+  }
+
+  .step-card__number {
+    width: 40px;
+    height: 40px;
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-md);
   }
 }
 </style>

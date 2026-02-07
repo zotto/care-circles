@@ -231,7 +231,19 @@ a:hover {
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 var(--spacing-md);
+  padding: 0 var(--layout-padding-desktop);
+}
+
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 var(--layout-padding-tablet);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 var(--layout-padding-mobile);
+  }
 }
 
 .container-sm {

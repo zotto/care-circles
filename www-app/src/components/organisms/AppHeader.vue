@@ -191,19 +191,107 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--component-gap-lg);
+  gap: var(--spacing-lg);
 }
 
 @media (max-width: 1024px) {
   .app-header__container {
     padding: 0 var(--layout-padding-tablet);
+    gap: var(--spacing-md);
+  }
+
+  .app-header__nav {
+    gap: var(--spacing-xs);
+  }
+
+  .app-header__nav-link {
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-xs);
+  }
+
+  .app-header__brand {
+    gap: var(--spacing-sm);
+  }
+
+  .app-header__logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .app-header__name {
+    font-size: var(--font-size-base);
+  }
+
+  .app-header__username {
+    max-width: 100px;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-header__nav-link {
+    padding: var(--spacing-sm);
+    gap: 6px;
+  }
+
+  .app-header__nav-link span {
+    font-size: 0.8125rem; /* 13px */
+  }
+
+  .app-header__username {
+    display: none;
   }
 }
 
 @media (max-width: 768px) {
   .app-header__container {
     padding: 0 var(--layout-padding-mobile);
-    gap: var(--component-gap-md);
+    gap: var(--spacing-sm);
+  }
+  
+  .app-header__brand {
+    gap: var(--spacing-sm);
+  }
+
+  .app-header__logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .app-header__name {
+    font-size: var(--font-size-base);
+  }
+
+  .app-header__nav {
+    display: none;
+  }
+
+  .app-header__username {
+    display: none;
+  }
+
+  .app-header__user-trigger {
+    padding: var(--spacing-xs);
+    gap: var(--spacing-xs);
+  }
+
+  .app-header__sign-in {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-size: var(--font-size-xs);
+  }
+
+  .app-header__sign-in span {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header__name {
+    display: none;
+  }
+
+  .app-header__sign-in {
+    padding: var(--spacing-sm) var(--spacing-md);
   }
 }
 
@@ -253,12 +341,6 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-@media (max-width: 768px) {
-  .app-header__nav {
-    display: none;
-  }
-}
-
 .app-header__nav-link {
   display: flex;
   align-items: center;
@@ -271,6 +353,8 @@ onUnmounted(() => {
   text-decoration: none;
   transition: all var(--transition-base);
   position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .app-header__nav-link:hover {
